@@ -31,12 +31,36 @@ class GMapsDurationProcessor(Processor):
                 name = duration.get('name')
                 for mode in duration.get('modes', []):
                     if 'gm_id' in mode and 'title' in mode \
-                                       and 'key' in self.config.get('google_maps_api', {}):
+                                    and 'key' in self.config.get('google_maps_api', {}):
                         duration = self.get_gmaps_distance(address, dest, mode['gm_id'])
                         title = mode['title']
-                        out += f"> {name} ({title}): {duration}\n"
+                        duration_minutes = self.duration_to_minutes(duration)
+                        limit = mode.get('limit', None)
+
+                        if limit is not None:
+                            if duration_minutes is not None and duration_minutes <= limit:
+                                out += f"> {name} ({title}): <b>{duration}</b>\n"
+                            else:
+                                out += f"> {name} ({title}): <i>{duration}</i>\n"
+                        else:
+                            out += f"> {name} ({title}): {duration}\n"
 
         return out.strip()
+
+    def duration_to_minutes(self, duration_text):
+        """Convert duration string to minutes"""
+        if duration_text is None:
+            return None
+
+        tokens = duration_text.split()
+        minutes = 0
+        for i in range(len(tokens)):
+            if tokens[i] == 'h':
+                minutes += int(tokens[i - 1]) * 60
+            elif tokens[i] == 'mins':
+                minutes += int(tokens[i - 1])
+
+        return minutes
 
     def get_gmaps_distance(self, address, dest, mode):
         """Get the distance"""

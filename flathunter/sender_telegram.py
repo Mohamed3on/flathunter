@@ -78,6 +78,7 @@ class SenderTelegram(Processor, Notifier):
         payload = {
             'chat_id': str(chat_id),
             'text': message,
+            'parse_mode': 'HTML',
         }
         logger.debug(('token:', self.bot_token))
         logger.debug(('chat_id:', chat_id))
