@@ -26,26 +26,29 @@ class GMapsDurationProcessor(Processor):
         """Return a formatted list of GoogleMaps durations"""
         out = ""
         for duration in self.config.get('durations', []):
-            if 'destination' in duration and 'name' in duration:
-                dest = duration.get('destination')
-                name = duration.get('name')
-                for mode in duration.get('modes', []):
-                    if 'gm_id' in mode and 'title' in mode \
-                                    and 'key' in self.config.get('google_maps_api', {}):
-                        duration = self.get_gmaps_distance(address, dest, mode['gm_id'])
-                        title = mode['title']
-                        duration_minutes = self.duration_to_minutes(duration)
-                        limit = mode.get('limit', None)
+            if 'destination' not in duration or 'name' not in duration:
+                continue
 
-                        if limit is not None:
-                            if duration_minutes is not None and duration_minutes <= limit:
-                                out += f"> {name} ({title}): <b>{duration}</b>\n"
-                            else:
-                                out += f"> {name} ({title}): <i>{duration}</i>\n"
-                        else:
-                            out += f"> {name} ({title}): {duration}\n"
+            dest = duration.get('destination')
+            name = duration.get('name')
+            for mode in duration.get('modes', []):
+                if not ('gm_id' in mode and 'title' in mode and 'key' in self.config.get('google_maps_api', {})):
+                    continue
+
+                duration = self.get_gmaps_distance(address, dest, mode['gm_id'])
+                title = mode['title']
+                duration_minutes = self.duration_to_minutes(duration)
+                limit = mode.get('limit', None)
+
+                if limit is not None and duration_minutes is not None and 0 < duration_minutes <= limit:
+                    format_style = "b"
+                else:
+                    format_style = "i"
+
+                out += f"> {name} ({title}): <{format_style}>{duration}</{format_style}>\n"
 
         return out.strip()
+
 
     def duration_to_minutes(self, duration_text):
         """Convert duration string to minutes"""
