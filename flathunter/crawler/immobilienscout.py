@@ -151,6 +151,10 @@ class CrawlImmobilienscout(Crawler):
             ]
 
         object_id: int = int(entry.get("@id", 0))
+        total_price = entry.get('calculatedTotalRent', {}).get("totalRent", {}).get('value', '')
+        price = entry.get("price", {}).get("value", '')
+        final_price = str(total_price) if total_price else str(price)
+
         return {
             'id': object_id,
             'url': f"https://www.immobilienscout24.de/expose/{str(object_id)}",
@@ -159,9 +163,8 @@ class CrawlImmobilienscout(Crawler):
             'title': entry.get("title", ''),
             'address': entry.get("address", {}).get("description", {}).get("text", ''),
             'crawler': self.get_name(),
-            'price': str(entry.get("price", {}).get("value", '')),
-            'total_price':
-                str(entry.get('calculatedTotalRent', {}).get("totalRent", {}).get('value', '')),
+            'price': final_price,
+            'total_price': str(total_price),
             'size': str(entry.get("livingSpace", '')),
             'rooms': str(entry.get("numberOfRooms", ''))
         }
