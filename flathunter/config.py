@@ -524,5 +524,5 @@ class Config(CaptchaEnvironmentConfig): # pylint: disable=too-many-public-method
 
     def max_price_per_square(self):
         if Env.FLATHUNTER_FILTER_MAX_PRICE_PER_SQUARE is not None:
-            return int(Env.FLATHUNTER_FILTER_MAX_PRICE_PER_SQUARE)
+            return float(Env.FLATHUNTER_FILTER_MAX_PRICE_PER_SQUARE)
         return super().max_price_per_square()
