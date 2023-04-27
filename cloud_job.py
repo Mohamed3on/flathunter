@@ -9,7 +9,7 @@ from flathunter.logging import configure_logging
 
 # load config
 args = parse()
-config_handle = args.flathunter_config
+config_handle = args.config
 if config_handle is not None:
     config = Config(config_handle.name)
 else:
