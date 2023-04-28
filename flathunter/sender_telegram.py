@@ -172,7 +172,7 @@ class SenderTelegram(Processor, Notifier):
         :param expose: dictionary
         :return: str
         """
-        pps = float(float(expose.get('size'))) / float(expose.get('price'))
+        pps = float(float(expose.get('size')) / float(expose.get('price')))
 
         return self.config.message_format().format(
             title=expose.get('title', 'N/A'),
