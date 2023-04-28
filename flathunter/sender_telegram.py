@@ -83,14 +83,17 @@ class SenderTelegram(Processor, Notifier):
         logger.debug(('token:', self.bot_token))
         logger.debug(('chat_id:', chat_id))
         logger.debug(('text:', message))
-        logger.debug("Retrieving URL %s, payload %s", self.__text_message_url, payload)
-        response = requests.request("POST", self.__text_message_url, data=payload, timeout=30)
-        logger.debug("Got response (%i): %s", response.status_code, response.content)
+        logger.debug("Retrieving URL %s, payload %s",
+                     self.__text_message_url, payload)
+        response = requests.request(
+            "POST", self.__text_message_url, data=payload, timeout=30)
+        logger.debug("Got response (%i): %s",
+                     response.status_code, response.content)
 
         # handle error
         if response.status_code != 200:
             self.__handle_error("When sending bot text message, we got an error.",
-                response, chat_id)
+                                response, chat_id)
             return {}
 
         return response.json().get('result', {})
@@ -116,10 +119,12 @@ class SenderTelegram(Processor, Notifier):
             if msg.get('message_id', None):
                 payload['reply_to_message_id'] = msg.get('message_id')
 
-            response = requests.request("POST", self.__media_group_url, data=payload, timeout=30)
+            response = requests.request(
+                "POST", self.__media_group_url, data=payload, timeout=30)
 
             if response.status_code != 200:
-                logger.warning("Error sending media group: %s", json.dumps(payload))
+                logger.warning("Error sending media group: %s",
+                               json.dumps(payload))
                 self.__handle_error(
                     "When sending media group, we got an error.",
                     response=response,
@@ -143,13 +148,14 @@ class SenderTelegram(Processor, Notifier):
         status_code = response.status_code
         data = response.json()
 
-        logger.error("%s, status code: %i, data: %s" , msg, status_code, data)
+        logger.error("%s, status code: %i, data: %s", msg, status_code, data)
 
         if response.status_code == 403:
             if "bot was blocked by the user" in data.get("description", ""):
                 raise BotBlockedException(f"User {chat_id} blocked the bot")
             if "user is deactivated" in data.get("description", ""):
-                raise UserDeactivatedException(f"User {chat_id} has been deactivated")
+                raise UserDeactivatedException(
+                    f"User {chat_id} has been deactivated")
         if response.status_code == 429:
             if "Too Many Requests" in data.get("description", ""):
                 backoff = data.get("parameters", {}).get("retry_after", 30)
@@ -166,6 +172,7 @@ class SenderTelegram(Processor, Notifier):
         :param expose: dictionary
         :return: str
         """
+        pps = float(float(expose.get('size'))) / float(expose.get('price'))
 
         return self.config.message_format().format(
             title=expose.get('title', 'N/A'),
@@ -174,5 +181,6 @@ class SenderTelegram(Processor, Notifier):
             price=expose.get('price', 'N/A'),
             url=expose.get('url', 'N/A'),
             address=expose.get('address', 'N/A'),
-            durations=expose.get('durations', 'N/A')
+            durations=expose.get('durations', 'N/A'),
+            pps=round(pps, 1) or 'N/A',
         ).strip()

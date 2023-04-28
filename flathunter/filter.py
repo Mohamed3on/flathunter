@@ -5,12 +5,14 @@ from abc import ABC, ABCMeta
 from typing import List, Any
 from flathunter.logging import logger
 
+
 class AbstractFilter(ABC):
     """Abstract base class for filters"""
 
     def is_interesting(self, _expose):
         """Return True if an expose should be included in the output, False otherwise"""
         return True
+
 
 class ExposeHelper:
     """Helper functions for extracting data from expose text"""
@@ -23,7 +25,6 @@ class ExposeHelper:
             return None
         price_str = price_match[0].replace(",", ".")
         return float(price_str)
-
 
     @staticmethod
     def get_size(expose):
@@ -41,6 +42,7 @@ class ExposeHelper:
             return None
         return float(rooms_match[0].replace(",", "."))
 
+
 class AlreadySeenFilter(AbstractFilter):
     """Filter exposes that have already been processed"""
 
@@ -52,6 +54,7 @@ class AlreadySeenFilter(AbstractFilter):
             self.id_watch.mark_processed(expose['id'])
             return True, ""
         return False, f"Expose {expose['id']} has already been processed."
+
 
 class MaxPriceFilter(AbstractFilter):
     """Exclude exposes above a given price"""
@@ -67,6 +70,7 @@ class MaxPriceFilter(AbstractFilter):
             return True, ""
         return False, f"Price {price} is above the max price {self.max_price}."
 
+
 class MinPriceFilter(AbstractFilter):
     """Exclude exposes below a given price"""
 
@@ -80,6 +84,7 @@ class MinPriceFilter(AbstractFilter):
         if price >= self.min_price:
             return True, ""
         return False, f"Price {price} is below the min price {self.min_price}."
+
 
 class MaxSizeFilter(AbstractFilter):
     """Exclude exposes above a given size"""
@@ -95,6 +100,7 @@ class MaxSizeFilter(AbstractFilter):
             return True, ""
         return False, f"Size {size} is above the max size {self.max_size}."
 
+
 class MinSizeFilter(AbstractFilter):
     """Exclude exposes below a given size"""
 
@@ -108,6 +114,7 @@ class MinSizeFilter(AbstractFilter):
         if size >= self.min_size:
             return True, ""
         return False, f"Size {size} is below the min size {self.min_size}."
+
 
 class MaxRoomsFilter(AbstractFilter):
     """Exclude exposes above a given number of rooms"""
@@ -123,6 +130,7 @@ class MaxRoomsFilter(AbstractFilter):
             return True, ""
         return False, f"Rooms {rooms} is above the max rooms {self.max_rooms}."
 
+
 class MinRoomsFilter(AbstractFilter):
     """Exclude exposes below a given number of rooms"""
 
@@ -137,6 +145,7 @@ class MinRoomsFilter(AbstractFilter):
             return True, ""
         return False, f"Rooms {rooms} is below the min rooms {self.min_rooms}."
 
+
 class TitleFilter(AbstractFilter):
     """Exclude exposes whose titles match the provided terms"""
 
@@ -145,10 +154,12 @@ class TitleFilter(AbstractFilter):
 
     def is_interesting(self, expose):
         combined_excludes = "(" + ")|(".join(self.filtered_titles) + ")"
-        found_objects = re.search(combined_excludes, expose['title'], re.IGNORECASE)
+        found_objects = re.search(
+            combined_excludes, expose['title'], re.IGNORECASE)
         if not found_objects:
             return True, ""
         return False, f"Title '{expose['title']}' matches filtered titles."
+
 
 class PPSFilter(AbstractFilter):
     """Exclude exposes above a given price per square"""
@@ -165,6 +176,7 @@ class PPSFilter(AbstractFilter):
         if pps <= self.max_pps:
             return True, ""
         return False, f"Price per square {pps} is above max price per square {self.max_pps}."
+
 
 class FilterBuilder:
     """Construct a filter chain"""
@@ -186,7 +198,8 @@ class FilterBuilder:
         self._append_filter_if_not_empty(MaxSizeFilter, config.max_size())
         self._append_filter_if_not_empty(MinRoomsFilter, config.min_rooms())
         self._append_filter_if_not_empty(MaxRoomsFilter, config.max_rooms())
-        self._append_filter_if_not_empty(PPSFilter, config.max_price_per_square())
+        self._append_filter_if_not_empty(
+            PPSFilter, config.max_price_per_square())
         return self
 
     def filter_already_seen(self, id_watch):
@@ -195,6 +208,7 @@ class FilterBuilder:
 
     def build(self):
         return Filter(self.filters)
+
 
 class Filter:
     """Abstract filter object"""
@@ -226,7 +240,8 @@ class Filter:
                 filtered_exposes.append(expose)
             else:
                 reasons = "\n - ".join(explanations)
-                logger.debug("Excluding expose: %s\nReasons:\n - %s", expose['title'], reasons)
+                logger.info("Excluding expose: %s\nReasons:\n - %s",
+                            expose['title'], reasons)
 
         return filtered_exposes
 
