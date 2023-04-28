@@ -24,44 +24,57 @@ Flathunter is a Python application which periodically [scrapes](https://en.wikip
 Currently available messaging services are [Telegram](https://telegram.org/), [Mattermost](https://mattermost.com/) and [Apprise](https://github.com/caronc/apprise).
 
 ## Table of Contents
-- [Background](#background)
-- [Install](#install)
+
+- [Flathunter](#flathunter)
+  - [Flathunter will not solve your problem](#flathunter-will-not-solve-your-problem)
+  - [If you are not a Python developer / power-user](#if-you-are-not-a-python-developer--power-user)
+  - [Description](#description)
+  - [Table of Contents](#table-of-contents)
+  - [Background](#background)
   - [Prerequisites](#prerequisites)
-  - [Installation on Linux](#installation-on-linux)
-- [Usage](#usage)
-  - [Configuration](#configuration)
-    - [URLs](#urls)
-    - [Telegram](#telegram)
-    - [2Captcha](#2captcha)
-    - [Proxy](#proxy)
-    - [Google API](#google-api)
-  - [Command-line Interface](#command-line-interface)
-  - [Web Interface](#web-interface)
-  - [Docker](#docker)
-  - [Google Cloud Deployment](#google-cloud-deployment)
-- [Testing](#testing)
-- [Maintainers](#maintainers)
-- [Credits](#credits)
-  - [Contributers](#contributers)
-- [Contributing](#contributing)
+  - [Install](#install)
+    - [Installation on Linux](#installation-on-linux)
+  - [Usage](#usage)
+    - [Configuration](#configuration)
+      - [URLs](#urls)
+      - [Telegram](#telegram)
+      - [Captchas](#captchas)
+      - [ImmoScout24 Cookie Override](#immoscout24-cookie-override)
+      - [Proxy](#proxy)
+      - [Google API](#google-api)
+    - [Command-line Interface](#command-line-interface)
+    - [Web Interface](#web-interface)
+    - [Docker](#docker)
+      - [With Docker Compose](#with-docker-compose)
+      - [With plain Docker](#with-plain-docker)
+      - [Environment Configuration](#environment-configuration)
+    - [Google Cloud Deployment](#google-cloud-deployment)
+      - [Google App Engine Deployment](#google-app-engine-deployment)
+      - [Google Cloud Run Deployment](#google-cloud-run-deployment)
+  - [Testing](#testing)
+  - [Maintainers](#maintainers)
+  - [Credits](#credits)
+    - [Contributers](#contributers)
+  - [Contributing](#contributing)
 
 ## Background
 
 There are at least four different rental property marketplace sites that are widely used in Germany - [ImmoScout24](https://www.immobilienscout24.de/), [Immowelt](https://www.immowelt.de/), [WG-Gesucht](https://www.wg-gesucht.de/) and [eBay Kleinanzeigen](https://www.ebay-kleinanzeigen.de/). Most people end up searching through listings on all four sites on an almost daily basis during their rental search.
 In Italy on the other hand, [idealista](https://www.idealista.it), [Subito](https://www.subito.it) and [Immobiliare.it](https://www.immobiliare.it) are very common for real-estate hunting.
 
-With ```Flathunter```, instead of visiting the same pages on the same  sites every day, you can set the system up to scan every site, filtering by your search criteria, and notify you when new rental property becomes available that meets your criteria.
+With `Flathunter`, instead of visiting the same pages on the same sites every day, you can set the system up to scan every site, filtering by your search criteria, and notify you when new rental property becomes available that meets your criteria.
 
 ## Prerequisites
-* [Python 3.8+](https://www.python.org/)
-* [pipenv](https://pipenv.pypa.io/en/latest/)
-* [Chromium](https://www.chromium.org/) / [Google Chrome](https://www.google.com/chrome/) (*optional to scan ads on immobilienscout24.de*)
-* [Docker]() (*optional*)
-* [GCloud CLI]() (*optional*)
+
+- [Python 3.8+](https://www.python.org/)
+- [pipenv](https://pipenv.pypa.io/en/latest/)
+- [Chromium](https://www.chromium.org/) / [Google Chrome](https://www.google.com/chrome/) (_optional to scan ads on immobilienscout24.de_)
+- [Docker]() (_optional_)
+- [GCloud CLI]() (_optional_)
 
 ## Install
 
-Start by installing all dependencies inside a virtual environment using ```pipenv``` from the project's directory:
+Start by installing all dependencies inside a virtual environment using `pipenv` from the project's directory:
 
 ```sh
 $ pipenv install
@@ -98,33 +111,45 @@ $ pipenv run python flathunt.py
 ```
 
 ### Installation on Linux
+
 (tested on CentOS Stream)
 
 First clone the repository
+
 ```sh
 $ cd /opt
 $ git clone https://github.com/flathunters/flathunter.git
 ```
+
 add a new User and configure the permissions
+
 ```sh
 $ useradd flathunter
 $ chown flathunter:flathunter -R flathunter/
 ```
+
 Next install pipenv for the new user
+
 ```sh
 $ sudo -u flathunter pip install --user pipenv
 $ cd flathunter/
 $ sudo -u flathunter /home/flathunter/.local/bin/pipenv install
 ```
+
 Next configure the config file and service file to your liking. Then move the service file in place:
+
 ```sh
 $ mv flathunter/sample-flathunter.service /lib/systemd/system/flathunter.service
 ```
+
 At last you just have to start flathunter
+
 ```sh
 $ systemctl enable flathunter --now
 ```
+
 If you're using SELinux the following policy needs to be added:
+
 ```sh
 $ chcon -R -t bin_t /home/flathunter/.local/bin/pipenv
 ```
@@ -146,11 +171,11 @@ $ python config_wizard.py
 
 To configure the searches, simply visit the property portal of your choice (e.g. ImmoScout24), configure the search on the website to match your search criteria, then copy the URL of the results page into the config file. You can add as many URLs as you like, also multiple from the same website if you have multiple different criteria (e.g. running the same search in different areas).
 
- * Currently, eBay Kleinanzeigen, Immowelt, WG-Gesucht and Idealista only crawl the first page, so make sure to **sort by newest offers**.
- * Your links should point to the German version of the websites (in the case of eBay Kleinanzeigen, Immowelt, ImmoScout24 and WG-Gesucht), since it is tested only there. Otherwise you might have problems.
- * For Idealista, the link should point to the Italian version of the website, for the same reason reported above.
- * For Immobiliare, the link should point to the Italian version of the website, for the same reasons reported above.
- * For Subito, the link should point to the Italian version of the website, for the same reasons reported above.
+- Currently, eBay Kleinanzeigen, Immowelt, WG-Gesucht and Idealista only crawl the first page, so make sure to **sort by newest offers**.
+- Your links should point to the German version of the websites (in the case of eBay Kleinanzeigen, Immowelt, ImmoScout24 and WG-Gesucht), since it is tested only there. Otherwise you might have problems.
+- For Idealista, the link should point to the Italian version of the website, for the same reason reported above.
+- For Immobiliare, the link should point to the Italian version of the website, for the same reasons reported above.
+- For Subito, the link should point to the Italian version of the website, for the same reasons reported above.
 
 #### Telegram
 
@@ -182,8 +207,8 @@ This should allow you to bypass the bot detection for a short period of time, bu
 
 It's common that websites use bots and crawler protections to avoid being flooded with possibly malicious traffic. This can cause some issues when crawling, as we will be presented with a bot-protection page.
 To circumvent this, we can enable proxies with the configuration key `use_proxy_list` and setting it to `True`.
-Flathunt will crawl a [free-proxy list website](https://free-proxy-list.net/) to retrieve a list of possible proxies to use, and cycle through the so obtained list until an usable proxy is found.  
-*Note*: there may be a lot of attemps before such an usable proxy is found. Depending on your region or your server's internet accessibility, it can take a while.
+Flathunt will crawl a [free-proxy list website](https://free-proxy-list.net/) to retrieve a list of possible proxies to use, and cycle through the so obtained list until an usable proxy is found.
+_Note_: there may be a lot of attemps before such an usable proxy is found. Depending on your region or your server's internet accessibility, it can take a while.
 
 #### Google API
 
@@ -262,29 +287,29 @@ $ docker run --mount type=bind,source=$PWD/config.yaml,target=/config.yaml flath
 
 To make deployment with docker easier, most of the important configuration options can be set with environment variables. The current list of recognised variables includes:
 
- - FLATHUNTER_TARGET_URLS - a semicolon-separated list of URLs to crawl
- - FLATHUNTER_DATABASE_LOCATION - the location on disk of the sqlite database if required
- - FLATHUNTER_GOOGLE_CLOUD_PROJECT_ID - the Google Cloud Project ID, for Google Cloud deployments
- - FLATHUNTER_VERBOSE_LOG - set to any value to enable verbose logging
- - FLATHUNTER_LOOP_PERIOD_SECONDS - a number in seconds for the crawling interval
- - FLATHUNTER_MESSAGE_FORMAT - a format string for the notification messages, where `#CR#` will be replaced by newline
- - FLATHUNTER_NOTIFIERS - a comma-separated list of notifiers to enable (e.g. `telegram,mattermost`)
- - FLATHUNTER_TELEGRAM_BOT_TOKEN - the token for the Telegram notifier
- - FLATHUNTER_TELEGRAM_RECEIVER_IDS - a comma-separated list of receiver IDs for Telegram notifications
- - FLATHUNTER_MATTERMOST_WEBHOOK_URL - the webhook URL for Mattermost notifications
- - FLATHUNTER_WEBSITE_SESSION_KEY - the secret session key used to secure sessions for the flathunter website deployment
- - FLATHUNTER_WEBSITE_DOMAIN - the public domain of the flathunter website deployment
- - FLATHUNTER_2CAPTCHA_KEY - the API key for 2captcha
- - FLATHUNTER_IMAGETYPERZ_TOKEN - the API token for ImageTyperz
- - FLATHUNTER_HEADLESS_BROWSER - set to any value to configure Google Chrome to be launched in headless mode (necessary for Docker installations)
- - FLATHUNTER_FILTER_EXCLUDED_TITLES - a semicolon-separated list of words to filter out from matches
- - FLATHUNTER_FILTER_MIN_PRICE - the minimum price (integer euros)
- - FLATHUNTER_FILTER_MAX_PRICE - the maximum price (integer euros)
- - FLATHUNTER_FILTER_MIN_SIZE - the minimum size (integer square meters)
- - FLATHUNTER_FILTER_MAX_SIZE - the maximum size (integer square meters)
- - FLATHUNTER_FILTER_MIN_ROOMS - the minimum number of rooms (integer)
- - FLATHUNTER_FILTER_MAX_ROOMS - the maximum number of rooms (integer)
- - FLATHUNTER_FILTER_MAX_PRICE_PER_SQUARE - the maximum price per square meter (integer euros)
+- FLATHUNTER_TARGET_URLS - a semicolon-separated list of URLs to crawl
+- FLATHUNTER_DATABASE_LOCATION - the location on disk of the sqlite database if required
+- FLATHUNTER_GOOGLE_CLOUD_PROJECT_ID - the Google Cloud Project ID, for Google Cloud deployments
+- FLATHUNTER_VERBOSE_LOG - set to any value to enable verbose logging
+- FLATHUNTER_LOOP_PERIOD_SECONDS - a number in seconds for the crawling interval
+- FLATHUNTER_MESSAGE_FORMAT - a format string for the notification messages, where `#CR#` will be replaced by newline
+- FLATHUNTER_NOTIFIERS - a comma-separated list of notifiers to enable (e.g. `telegram,mattermost`)
+- FLATHUNTER_TELEGRAM_BOT_TOKEN - the token for the Telegram notifier
+- FLATHUNTER_TELEGRAM_RECEIVER_IDS - a comma-separated list of receiver IDs for Telegram notifications
+- FLATHUNTER_MATTERMOST_WEBHOOK_URL - the webhook URL for Mattermost notifications
+- FLATHUNTER_WEBSITE_SESSION_KEY - the secret session key used to secure sessions for the flathunter website deployment
+- FLATHUNTER_WEBSITE_DOMAIN - the public domain of the flathunter website deployment
+- FLATHUNTER_2CAPTCHA_KEY - the API key for 2captcha
+- FLATHUNTER_IMAGETYPERZ_TOKEN - the API token for ImageTyperz
+- FLATHUNTER_HEADLESS_BROWSER - set to any value to configure Google Chrome to be launched in headless mode (necessary for Docker installations)
+- FLATHUNTER_FILTER_EXCLUDED_TITLES - a semicolon-separated list of words to filter out from matches
+- FLATHUNTER_FILTER_MIN_PRICE - the minimum price (integer euros)
+- FLATHUNTER_FILTER_MAX_PRICE - the maximum price (integer euros)
+- FLATHUNTER_FILTER_MIN_SIZE - the minimum size (integer square meters)
+- FLATHUNTER_FILTER_MAX_SIZE - the maximum size (integer square meters)
+- FLATHUNTER_FILTER_MIN_ROOMS - the minimum number of rooms (integer)
+- FLATHUNTER_FILTER_MAX_ROOMS - the maximum number of rooms (integer)
+- FLATHUNTER_FILTER_MAX_PRICE_PER_SQUARE - the maximum price per square meter (integer euros)
 
 ### Google Cloud Deployment
 
@@ -302,7 +327,7 @@ $ gcloud config set project flathunters
 
 You will need to provide the project ID to the configuration file `config.yaml` as value to the key `google_cloud_project_id` or in the `FLATHUNTER_GOOGLE_CLOUD_PROJECT_ID` environment variable.
 
-Google Cloud [doesn't currently support Pipfiles](https://stackoverflow.com/questions/58546089/does-google-app-engine-flex-support-pipfile). To work around this restriction, the `Pipfile` and `Pipfile.lock` have been added to `.gcloudignore`, and a `requirements.txt` file has been generated using `pip freeze`. 
+Google Cloud [doesn't currently support Pipfiles](https://stackoverflow.com/questions/58546089/does-google-app-engine-flex-support-pipfile). To work around this restriction, the `Pipfile` and `Pipfile.lock` have been added to `.gcloudignore`, and a `requirements.txt` file has been generated using `pip freeze`.
 
 If the Pipfile has been updated, you will need to remove the line `pkg-resources==0.0.0` from `requirements.txt` for a successful deploy.
 
