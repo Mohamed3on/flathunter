@@ -2,6 +2,7 @@
 import json
 import time
 from typing import List, Dict, Optional
+from flathunter.filter import ExposeHelper
 
 import requests
 
@@ -172,7 +173,9 @@ class SenderTelegram(Processor, Notifier):
         :param expose: dictionary
         :return: str
         """
-        pps = float(float(expose.get('size')) / float(expose.get('price')))
+        size_number = ExposeHelper.get_size(expose)
+        price_number = ExposeHelper.get_price(expose)
+        pps = price / size
 
         return self.config.message_format().format(
             title=expose.get('title', 'N/A'),
