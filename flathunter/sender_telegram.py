@@ -175,7 +175,7 @@ class SenderTelegram(Processor, Notifier):
         """
         size_number = ExposeHelper.get_size(expose)
         price_number = ExposeHelper.get_price(expose)
-        pps = price / size
+        pps = price_number / size_number
 
         return self.config.message_format().format(
             title=expose.get('title', 'N/A'),
