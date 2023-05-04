@@ -176,6 +176,15 @@ class SenderTelegram(Processor, Notifier):
         size_number = ExposeHelper.get_size(expose)
         price_number = ExposeHelper.get_price(expose)
         pps = price_number / size_number
+        rounded_pps = round(pps, 1)
+
+        preferred_max_pps = self.config.telegram_preferred_max_pps()
+
+        if preferred_max_pps and pps < preferred_max_pps:
+            pps_string = f"<b>{rounded_pps}</b>"
+
+        else:
+            pps_string = f"<i>{rounded_pps}</i>"
 
         return self.config.message_format().format(
             title=expose.get('title', 'N/A'),
@@ -185,5 +194,5 @@ class SenderTelegram(Processor, Notifier):
             url=expose.get('url', 'N/A'),
             address=expose.get('address', 'N/A'),
             durations=expose.get('durations', 'N/A'),
-            pps=round(pps, 1) or 'N/A',
+            pps=pps_string or 'N/A',
         ).strip()

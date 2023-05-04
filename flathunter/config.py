@@ -23,7 +23,7 @@ from flathunter.exceptions import ConfigException
 load_dotenv()
 
 
-def _read_env(key: str, fallback: Optional[str]=None) -> Optional[str]:
+def _read_env(key: str, fallback: Optional[str] = None) -> Optional[str]:
     """ read the given key from environment"""
     return os.environ.get(key, fallback)
 
@@ -39,15 +39,18 @@ class Env:
     # Generic Config
     FLATHUNTER_TARGET_URLS = _read_env("FLATHUNTER_TARGET_URLS")
     FLATHUNTER_DATABASE_LOCATION = _read_env("FLATHUNTER_DATABASE_LOCATION")
-    FLATHUNTER_GOOGLE_CLOUD_PROJECT_ID = _read_env("FLATHUNTER_GOOGLE_CLOUD_PROJECT_ID")
+    FLATHUNTER_GOOGLE_CLOUD_PROJECT_ID = _read_env(
+        "FLATHUNTER_GOOGLE_CLOUD_PROJECT_ID")
     FLATHUNTER_VERBOSE_LOG = _read_env("FLATHUNTER_VERBOSE_LOG")
-    FLATHUNTER_LOOP_PERIOD_SECONDS = _read_env("FLATHUNTER_LOOP_PERIOD_SECONDS")
+    FLATHUNTER_LOOP_PERIOD_SECONDS = _read_env(
+        "FLATHUNTER_LOOP_PERIOD_SECONDS")
     FLATHUNTER_LOOP_PAUSE_FROM = _read_env("FLATHUNTER_LOOP_PAUSE_FROM")
     FLATHUNTER_LOOP_PAUSE_TILL = _read_env("FLATHUNTER_LOOP_PAUSE_TILL")
     FLATHUNTER_MESSAGE_FORMAT = _read_env("FLATHUNTER_MESSAGE_FORMAT")
 
     # Website setup
-    FLATHUNTER_WEBSITE_SESSION_KEY = _read_env("FLATHUNTER_WEBSITE_SESSION_KEY")
+    FLATHUNTER_WEBSITE_SESSION_KEY = _read_env(
+        "FLATHUNTER_WEBSITE_SESSION_KEY")
     FLATHUNTER_WEBSITE_DOMAIN = _read_env("FLATHUNTER_WEBSITE_DOMAIN")
     FLATHUNTER_WEBSITE_BOT_NAME = _read_env("FLATHUNTER_WEBSITE_BOT_NAME")
 
@@ -56,18 +59,23 @@ class Env:
     FLATHUNTER_TELEGRAM_BOT_TOKEN = _read_env("FLATHUNTER_TELEGRAM_BOT_TOKEN")
     FLATHUNTER_TELEGRAM_BOT_NOTIFY_WITH_IMAGES = \
         _read_env("FLATHUNTER_TELEGRAM_BOT_NOTIFY_WITH_IMAGES")
-    FLATHUNTER_TELEGRAM_RECEIVER_IDS = _read_env("FLATHUNTER_TELEGRAM_RECEIVER_IDS")
-    FLATHUNTER_MATTERMOST_WEBHOOK_URL = _read_env("FLATHUNTER_MATTERMOST_WEBHOOK_URL")
+    FLATHUNTER_TELEGRAM_RECEIVER_IDS = _read_env(
+        "FLATHUNTER_TELEGRAM_RECEIVER_IDS")
+    FLATHUNTER_MATTERMOST_WEBHOOK_URL = _read_env(
+        "FLATHUNTER_MATTERMOST_WEBHOOK_URL")
 
     # Filters
-    FLATHUNTER_FILTER_EXCLUDED_TITLES = _read_env("FLATHUNTER_FILTER_EXCLUDED_TITLES")
+    FLATHUNTER_FILTER_EXCLUDED_TITLES = _read_env(
+        "FLATHUNTER_FILTER_EXCLUDED_TITLES")
     FLATHUNTER_FILTER_MIN_PRICE = _read_env("FLATHUNTER_FILTER_MIN_PRICE")
     FLATHUNTER_FILTER_MAX_PRICE = _read_env("FLATHUNTER_FILTER_MAX_PRICE")
     FLATHUNTER_FILTER_MIN_SIZE = _read_env("FLATHUNTER_FILTER_MIN_SIZE")
     FLATHUNTER_FILTER_MAX_SIZE = _read_env("FLATHUNTER_FILTER_MAX_SIZE")
     FLATHUNTER_FILTER_MIN_ROOMS = _read_env("FLATHUNTER_FILTER_MIN_ROOMS")
     FLATHUNTER_FILTER_MAX_ROOMS = _read_env("FLATHUNTER_FILTER_MAX_ROOMS")
-    FLATHUNTER_FILTER_MAX_PRICE_PER_SQUARE = _read_env("FLATHUNTER_FILTER_MAX_PRICE_PER_SQUARE")
+    FLATHUNTER_FILTER_MAX_PRICE_PER_SQUARE = _read_env(
+        "FLATHUNTER_FILTER_MAX_PRICE_PER_SQUARE")
+
 
 def elide(string):
     """Obfuscate the value of a string for debug purposes"""
@@ -78,7 +86,8 @@ def elide(string):
     blanks = "x" * (len(string)-6)
     return f"{string[0:3]}{blanks}{string[-3:]}"
 
-class YamlConfig: # pylint: disable=too-many-public-methods
+
+class YamlConfig:  # pylint: disable=too-many-public-methods
     """Generic config object constructed from nested dictionaries"""
 
     DEFAULT_MESSAGE_FORMAT = """{title}
@@ -234,6 +243,10 @@ Preis: {price}
             return config_format
         return self.DEFAULT_MESSAGE_FORMAT
 
+    def telegram_preferred_max_pps(self):
+        """Preferred maximum price per square meter"""
+        return self._read_yaml_path('telegram.preferred_max_pps', None)
+
     def notifiers(self):
         """List of currently-active notifiers"""
         return self._read_yaml_path('notifiers', [])
@@ -244,7 +257,8 @@ Preis: {price}
 
     def telegram_notify_with_images(self) -> bool:
         """True if images should be sent along with notifications"""
-        flag = str(self._read_yaml_path("telegram.notify_with_images", 'false'))
+        flag = str(self._read_yaml_path(
+            "telegram.notify_with_images", 'false'))
         return flag.lower() == 'true'
 
     def telegram_receiver_ids(self):
@@ -350,19 +364,20 @@ Preis: {price}
             "use_proxy": self.use_proxy(),
         })
 
+
 class CaptchaEnvironmentConfig(YamlConfig):
     """Mixin to add environment-variable captcha support to config object"""
 
     def _get_imagetyperz_token(self):
         if Env.FLATHUNTER_IMAGETYPERZ_TOKEN is not None:
             return Env.FLATHUNTER_IMAGETYPERZ_TOKEN
-        return super()._get_imagetyperz_token() # pylint: disable=no-member
+        return super()._get_imagetyperz_token()  # pylint: disable=no-member
 
     def get_twocaptcha_key(self):
         """Return the currently configured 2captcha API key"""
         if Env.FLATHUNTER_2CAPTCHA_KEY is not None:
             return Env.FLATHUNTER_2CAPTCHA_KEY
-        return super().get_twocaptcha_key() # pylint: disable=no-member
+        return super().get_twocaptcha_key()  # pylint: disable=no-member
 
     def captcha_driver_arguments(self):
         """The list of driver arguments for Selenium / Webdriver"""
@@ -375,9 +390,10 @@ class CaptchaEnvironmentConfig(YamlConfig):
                 "--disable-dev-shm-usage",
                 "--window-size=1024,768"
             ]
-        return super().captcha_driver_arguments() # pylint: disable=no-member
+        return super().captcha_driver_arguments()  # pylint: disable=no-member
 
-class Config(CaptchaEnvironmentConfig): # pylint: disable=too-many-public-methods
+
+class Config(CaptchaEnvironmentConfig):  # pylint: disable=too-many-public-methods
     """Class to represent flathunter configuration, built from a file, supporting
     environment variable overrides
     """
@@ -479,7 +495,7 @@ class Config(CaptchaEnvironmentConfig): # pylint: disable=too-many-public-method
 
     def telegram_receiver_ids(self):
         if Env.FLATHUNTER_TELEGRAM_RECEIVER_IDS is not None:
-            return [ int(x) for x in Env.FLATHUNTER_TELEGRAM_RECEIVER_IDS.split(",") ]
+            return [int(x) for x in Env.FLATHUNTER_TELEGRAM_RECEIVER_IDS.split(",")]
         return super().telegram_receiver_ids()
 
     def mattermost_webhook_url(self):
