@@ -433,11 +433,11 @@
     },
     "google-cloud-firestore": {
       "hashes": [
-        "sha256:80b522570f7a63d02dfff72d3493d2b0f7a1d631ccb4c3f2a9797b0eda3071ef",
-        "sha256:980dc55f70a0ee5740a7134691adb58cd5bd96318abbeac5dcc85faa67a40dae"
+        "sha256:7f7dfa86567c8d66c66c8dba8bc5ef85677c8532b4206055a339413f8071525d",
+        "sha256:833019175b6c82727da71e2db2fdea9bf203d0b8239c696492f7e2b24566bb3e"
       ],
       "markers": "platform_python_implementation != 'PyPy'",
-      "version": "==2.11.0"
+      "version": "==2.11.1"
     },
     "google-cloud-storage": {
       "hashes": [
@@ -523,8 +523,8 @@
     },
     "google-resumable-media": {
       "hashes": [
-        "sha256:15b8a2e75df42dc6502d1306db0bce2647ba6013f9cd03b6e17368c0886ee90a",
-        "sha256:831e86fd78d302c1a034730a0c6e5369dd11d37bad73fa69ca8998460d5bae8d"
+        "sha256:218931e8e2b2a73a58eb354a288e03a0fd5fb1c4583261ac6e4c078666468c93",
+        "sha256:da1bd943e2e114a56d85d6848497ebf9be6a14d3db23e9fc57581e7c3e8170ec"
       ],
       "markers": "python_version >= '3.7'",
       "version": "==2.5.0"
@@ -1319,8 +1319,8 @@
     },
     "tomlkit": {
       "hashes": [
-        "sha256:5325463a7da2ef0c6bbfefb62a3dc883aebe679984709aee32a317907d0a8d3c",
-        "sha256:f392ef70ad87a672f02519f99967d28a4d3047133e2d1df936511465fbb3791d"
+        "sha256:8c726c4c202bdb148667835f68d68780b9a003a9ec34167b6c673b38eff2a171",
+        "sha256:9330fc7faa1db67b541b28e62018c17d20be733177d290a13b24c62d1614e0c3"
       ],
       "markers": "python_version >= '3.7'",
       "version": "==0.11.8"
