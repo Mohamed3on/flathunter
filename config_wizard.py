@@ -20,32 +20,39 @@ from flathunter.crawler import immobilienscout
 
 class ConfigurationAborted(Exception):
     """Exception to indicate the user has aborted the configuration"""
+
     def __str__(self):
         return "Configuration Aborted"
+
 
 class ConfigurationError(Exception):
     """Exception to indicate that the configuration failed (programming error)"""
 
+
 class Notifier(Enum):
     """Class for the different types of notifier"""
+
     TELEGRAM = "telegram"
     MATTERMOST = "mattermost"
     APPRISE = "apprise"
+
 
 def welcome():
     """Display the welcome dialog"""
     message_dialog(
         title="Flathunter Configuration Wizard",
         text="Welcome to the Flathunter Configuration Wizard\n\n"
-          "This Wizard will take you through the configuration of your Flathunter\ninstallation. "
-          "The configuration generated will be saved to `config.yaml`\n"
-          "in your project directory\n\n"
-          "Press ENTER to continue.",
+        "This Wizard will take you through the configuration of your Flathunter\ninstallation. "
+        "The configuration generated will be saved to `config.yaml`\n"
+        "in your project directory\n\n"
+        "Press ENTER to continue.",
     ).run()
+
 
 class UrlsValidator(Validator):
     """Validate that URLs entered in the URL entry screen are crawled by one of the
     configured crawlers"""
+
     def __init__(self, urls, config):
         self.urls = urls
         self.config = config
@@ -59,8 +66,7 @@ class UrlsValidator(Validator):
         for searcher in self.config.searchers():
             if re.search(searcher.URL_PATTERN, document.text):
                 return
-        raise ValidationError(cursor_position=len(document.text),
-            message="URL did not match any configured scraper")
+        raise ValidationError(cursor_position=len(document.text), message="URL did not match any configured scraper")
 
 
 def gather_urls(config: YamlConfig) -> List[str]:
@@ -71,21 +77,27 @@ def gather_urls(config: YamlConfig) -> List[str]:
     while first_run or len(urls) == 0 or len(result) > 0:
         clear()
         print("Enter URLs for Scraping\n")
-        print("Flathunter scrapes property portals by fetching content from search URLs\n"
-            "on the websites. Visit ImmoScout, ImmoWelt, eBay-Kleinanzeigen or WG-Gesucht,\n"
+        print(
+            "Flathunter scrapes property portals by fetching content from search URLs\n"
+            "on the websites. Visit ImmoScout, ImmoWelt, Kleinanzeigen or WG-Gesucht,\n"
             "make a search for the flat that you are looking for (e.g. pick a city), and\n"
-            "copy the URL here. You can add as many URLs as you like.\n\n")
+            "copy the URL here. You can add as many URLs as you like.\n\n"
+        )
         if len(urls) > 0:
             print("\n".join(urls))
             print("")
-        result = prompt("Enter a target URL (or hit enter to continue): ",
-            validator=UrlsValidator(urls, config), validate_while_typing=False)
+        result = prompt(
+            "Enter a target URL (or hit enter to continue): ",
+            validator=UrlsValidator(urls, config),
+            validate_while_typing=False,
+        )
         if len(result) > 0:
             urls.append(result)
         if len(result) == 0 and len(urls) == 0:
             raise ConfigurationAborted()
         first_run = False
     return urls
+
 
 def select_notifier(config: YamlConfig) -> str:
     """Select which notifier to use"""
@@ -101,36 +113,43 @@ def select_notifier(config: YamlConfig) -> str:
         ],
         title="Configure notifications",
         text="Choose a notification platform.",
-        default=default
+        default=default,
     ).run()
+
 
 def prompt_with_default(prompt_string: str, default_value: Optional[str]) -> str:
     """Prompt the user for input, providing an optional default value"""
     if default_value is None:
         return prompt(prompt_string)
-    return prompt(prompt_string, default = default_value)
+    return prompt(prompt_string, default=default_value)
+
 
 def get_bot_token(config: YamlConfig) -> str:
     """Ask the user for the Telegram Bot token"""
     clear()
     print("Telegram Bot Token\n")
-    print("To send Telegram messages, we need a Telegram Bot Token. You can follow\n"
+    print(
+        "To send Telegram messages, we need a Telegram Bot Token. You can follow\n"
         "the instructions here to track down 'The BotFather' and generate your token:\n"
-        "https://medium.com/geekculture/generate-telegram-token-for-bot-api-d26faf9bf064\n")
+        "https://medium.com/geekculture/generate-telegram-token-for-bot-api-d26faf9bf064\n"
+    )
 
     result = prompt_with_default("Enter Bot Token: ", config.telegram_bot_token())
     if result is None or len(result) == 0:
         raise ConfigurationAborted()
     return result
 
+
 def get_receiver_id(config: YamlConfig) -> str:
     """Ask the user for the target Telegram User ID for the Telegram notifications"""
     clear()
     print("Telegram Receiver ID\n")
-    print("Your Telegram Bot needs to know which user to send the notifications to.\n"
+    print(
+        "Your Telegram Bot needs to know which user to send the notifications to.\n"
         "This will normally be the User ID associated with your Telegram Account.\n"
         "To work out your User ID, start a chat with the @userinfobot:\n"
-        "https://telegram.me/userinfobot\n")
+        "https://telegram.me/userinfobot\n"
+    )
     current_receiver_id = None
     if len(config.telegram_receiver_ids()) > 0:
         current_receiver_id = str(config.telegram_receiver_ids()[0])
@@ -140,39 +159,34 @@ def get_receiver_id(config: YamlConfig) -> str:
         raise ConfigurationAborted()
     return result
 
+
 def configure_telegram(config: YamlConfig) -> Dict[str, Any]:
     """Ask the user for details required for the Telegram configuration"""
     bot_token = get_bot_token(config)
     receiver_id = get_receiver_id(config)
-    return {
-        Notifier.TELEGRAM.value: {
-            "bot_token": bot_token,
-            "receiver_ids": [ receiver_id ]
-        }
-    }
+    return {Notifier.TELEGRAM.value: {"bot_token": bot_token, "receiver_ids": [receiver_id]}}
+
 
 def configure_mattermost(config: YamlConfig) -> Dict[str, Any]:
     """Ask the user for the mattermost webhook URL"""
     clear()
     print("Mattermost Webhook URL\n")
-    print("To receive messages over Mattermost, Flathunter will need the Webhook URL\n"
-    "of your Mattermost server.\n")
+    print("To receive messages over Mattermost, Flathunter will need the Webhook URL\n" "of your Mattermost server.\n")
 
     webhook_url = prompt_with_default("Enter Webhook URL: ", config.mattermost_webhook_url())
     if len(webhook_url) == 0:
         raise ConfigurationAborted()
-    return {
-        Notifier.MATTERMOST.value: {
-            "webhook_url": webhook_url
-        }
-    }
+    return {Notifier.MATTERMOST.value: {"webhook_url": webhook_url}}
+
 
 def configure_apprise(config: YamlConfig) -> Dict[str, Any]:
     """Ask the user for the apprise notification URL"""
     clear()
     print("Apprise notification URL\n")
-    print("To receive messages using Apprise, you need to supply a notification URL in the\n"
-    "apprise format, e.g. 'gotifys://...' or 'mailto://...'\n")
+    print(
+        "To receive messages using Apprise, you need to supply a notification URL in the\n"
+        "apprise format, e.g. 'gotifys://...' or 'mailto://...'\n"
+    )
     if len(config.apprise_urls()) > 0:
         apprise_url = prompt("Enter Apprise notification URL: ", default=config.apprise_urls()[0])
     else:
@@ -180,9 +194,8 @@ def configure_apprise(config: YamlConfig) -> Dict[str, Any]:
 
     if len(apprise_url) == 0:
         raise ConfigurationAborted()
-    return {
-        Notifier.APPRISE.value: [ apprise_url ]
-    }
+    return {Notifier.APPRISE.value: [apprise_url]}
+
 
 def configure_notifier(notifier: str, config) -> Dict[str, Any]:
     """Configure the selected / active notifier"""
@@ -194,25 +207,32 @@ def configure_notifier(notifier: str, config) -> Dict[str, Any]:
         return configure_apprise(config)
     raise ConfigurationError("Invalid Notifier Selection")
 
+
 def configure_captcha(urls: List[str], config: YamlConfig) -> Optional[Dict[str, Any]]:
     """Configure the captcha solver, where required"""
-    is_immoscout = reduce(lambda a,b: a or b,
-                          [re.search(immobilienscout.STATIC_URL_PATTERN, url) for url in urls],
-                          False)
+    is_immoscout = reduce(
+        lambda a, b: a or b, [re.search(immobilienscout.STATIC_URL_PATTERN, url) for url in urls], False
+    )
     if not is_immoscout:
         return None
     clear()
     print("Captcha configuration\n")
-    print("Your search configuration includes URLs from ImmobilienScout24\n"
-    "To crawl ImmoScout, we need to browse the site with a real Chrome browser instance\n"
-    "and solve the Captcha that shows up on the ImmoScout site.\n")
+    print(
+        "Your search configuration includes URLs from ImmobilienScout24\n"
+        "To crawl ImmoScout, we need to browse the site with a real Chrome browser instance\n"
+        "and solve the Captcha that shows up on the ImmoScout site.\n"
+    )
     print("You WILL NEED TO INSTALL google-chrome / chromium to solve Captchas\n")
-    print("We recommend using 2captcha (https://2captcha.com/) as your captcha-solving\n"
-    "service. You will need an account there with some credit on it.\n"
-    "IMPORTANT NOTICE: Buying captcha credit does not guarantee that Flathunter will be\n"
-    "able to bypass the bot detection on the ImmoScout site - pay at your own risk!!\n")
-    print("Once you have an account and have paid, enter the API Key here (or hit Enter\n"
-    "to skip Captcha configuration, but be aware that ImmoScout scraping will fail...)\n")
+    print(
+        "We recommend using 2captcha (https://2captcha.com/) as your captcha-solving\n"
+        "service. You will need an account there with some credit on it.\n"
+        "IMPORTANT NOTICE: Buying captcha credit does not guarantee that Flathunter will be\n"
+        "able to bypass the bot detection on the ImmoScout site - pay at your own risk!!\n"
+    )
+    print(
+        "Once you have an account and have paid, enter the API Key here (or hit Enter\n"
+        "to skip Captcha configuration, but be aware that ImmoScout scraping will fail...)\n"
+    )
     if config.get_twocaptcha_key() is not None:
         api_key = prompt("Enter 2Captcha API Key: ", default=config.get_twocaptcha_key())
     else:
@@ -222,19 +242,18 @@ def configure_captcha(urls: List[str], config: YamlConfig) -> Optional[Dict[str,
         return None
     return {
         "captcha": {
-            "2captcha": {
-                "api_key": api_key
-            },
+            "2captcha": {"api_key": api_key},
             "driver_arguments": [
-              "--no-sandbox",
-              "--headless",
-              "--disable-gpu",
-              "--remote-debugging-port=9222",
-              "--disable-dev-shm-usage",
-              "window-size=1024,768"
-            ]
+                "--no-sandbox",
+                "--headless",
+                "--disable-gpu",
+                "--remote-debugging-port=9222",
+                "--disable-dev-shm-usage",
+                "window-size=1024,768",
+            ],
         }
     }
+
 
 def load_config(existing) -> YamlConfig:
     """Load the existing (or default) config from disk"""
@@ -246,6 +265,7 @@ def load_config(existing) -> YamlConfig:
         config = yaml.load(dist_config)
     return YamlConfig(config)
 
+
 def save_config(config: Dict):
     """Save the configuration as 'config.yaml'"""
     clear()
@@ -253,6 +273,7 @@ def save_config(config: Dict):
     with open("config.yaml", "w", encoding="utf-8") as config_file:
         yaml.dump(config, config_file)
     print("Configuration saved to 'config.yaml' - you're all set!")
+
 
 def check_existing() -> bool:
     """Check to see if a configuration file already exists, prompt if so"""
@@ -277,9 +298,9 @@ def main():
         config = load_config(existing)
         config.init_searchers()
         urls = gather_urls(config)
-        config.set_keys({ "urls": urls })
+        config.set_keys({"urls": urls})
         notifier = select_notifier(config)
-        config.set_keys({ "notifiers": [ notifier ]})
+        config.set_keys({"notifiers": [notifier]})
         notifier_config = configure_notifier(notifier, config)
         config.set_keys(notifier_config)
         captcha_config = configure_captcha(urls, config)
