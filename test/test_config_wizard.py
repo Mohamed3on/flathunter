@@ -51,6 +51,18 @@ class ConfigWizardTest(unittest.TestCase):
             config_wizard.configure_mattermost(self.config)
 
     @patch("config_wizard.prompt")
+    def test_configure_slack(self, prompt_mock):
+        prompt_mock.side_effect = ["https://hooks.slack.url"]
+        res = config_wizard.configure_slack(self.config)
+        self.assertEqual(res["slack"]["webhook_url"], "https://hooks.slack.url")
+
+    @patch("config_wizard.prompt")
+    def test_configure_slack_throws_exception_with_no_input(self, prompt_mock):
+        prompt_mock.side_effect = [""]
+        with pytest.raises(ConfigurationAborted):
+            config_wizard.configure_slack(self.config)
+
+    @patch("config_wizard.prompt")
     def test_configure_apprise(self, prompt_mock):
         prompt_mock.side_effect = [
             "mailto://someone.who@cares.com"
@@ -79,7 +91,7 @@ class ConfigWizardTest(unittest.TestCase):
     @patch("config_wizard.prompt")
     def test_configure_notifier(self, prompt_mock):
         prompt_mock.side_effect = [
-            "", "", ""
+            "", "", "", ""
         ]
         for notifier in Notifier:
             with pytest.raises(ConfigurationAborted):

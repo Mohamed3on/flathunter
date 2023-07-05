@@ -9,18 +9,21 @@ from flathunter.logging import logger
 from flathunter.abstract_crawler import Crawler
 from flathunter.string_utils import remove_prefix
 
+
 def get_title(title_row: Tag) -> str:
     """Parse the title from the expose title element"""
     return title_row.text.strip()
+
 
 def get_url(title_row: Tag) -> Optional[str]:
     """Parse the expose URL from the expose title element"""
     a_element = title_row.find('a')
     if not isinstance(a_element, Tag) \
-        or not a_element.has_attr('href') \
-        or not isinstance(a_element.attrs['href'], str):
+            or not a_element.has_attr('href') \
+            or not isinstance(a_element.attrs['href'], str):
         return None
     return 'https://www.wg-gesucht.de/' + remove_prefix(a_element.attrs['href'], "/")
+
 
 def extract_href_style(row: Tag) -> Optional[str]:
     """Extract the style attribute from a image div"""
@@ -35,6 +38,7 @@ def extract_href_style(row: Tag) -> Optional[str]:
         return None
     return style
 
+
 def get_image_url(row: Tag) -> Optional[str]:
     """Parse the image url from the expose"""
     href_style = extract_href_style(row)
@@ -45,17 +49,19 @@ def get_image_url(row: Tag) -> Optional[str]:
         return None
     return image_match[1]
 
-def get_rooms(row: Tag) -> int:
+
+def get_rooms(row: Tag) -> str:
     """Parse the number of rooms from the expose"""
     details_el = row.find("div", {"class": "col-xs-11"})
     if not isinstance(details_el, Tag):
-        return 0
+        return ""
     detail_string = details_el.text.strip().split("|")
     details_array = list(map(lambda s: re.sub(' +', ' ',
-                                                re.sub(r'\W', ' ', s.strip())),
-                                detail_string))
+                                              re.sub(r'\W', ' ', s.strip())),
+                             detail_string))
     rooms_tmp = re.findall(r'\d Zimmer', details_array[0])
-    return int(rooms_tmp[0][:1]) if rooms_tmp else 0
+    return rooms_tmp[0][:1] if rooms_tmp else ""
+
 
 def get_price(numbers_row: Tag) -> Optional[str]:
     """Parse the price from the expose"""
@@ -64,6 +70,7 @@ def get_price(numbers_row: Tag) -> Optional[str]:
         return None
     return price_el.text.strip()
 
+
 def get_dates(numbers_row: Tag) -> List[str]:
     """Parse the advert dates from the expose"""
     date_el = numbers_row.find("div", {"class": "text-center"})
@@ -71,12 +78,14 @@ def get_dates(numbers_row: Tag) -> List[str]:
         return []
     return re.findall(r'\d{2}.\d{2}.\d{4}', date_el.text)
 
+
 def get_size(numbers_row: Tag) -> List[str]:
     """Parse the room size from the expose"""
     size_el = numbers_row.find("div", {"class": "text-right"})
     if not isinstance(size_el, Tag):
         return []
     return re.findall(r'\d{1,4}\sm²', size_el.text)
+
 
 def parse_expose_element_to_details(row: Tag, crawler: str) -> Optional[Dict]:
     """Parse an Expose soup element to an Expose details dictionary"""
@@ -128,6 +137,7 @@ def parse_expose_element_to_details(row: Tag, crawler: str) -> Optional[Dict]:
         details['from'] = dates[0]
     return details
 
+
 def liste_attribute_filter(element: Union[Tag, str]) -> bool:
     """Return true for elements whose 'id' attribute starts with 'liste-'"""
     if not isinstance(element, Tag):
@@ -135,6 +145,7 @@ def liste_attribute_filter(element: Union[Tag, str]) -> bool:
     if "id" not in element.attrs:
         return False
     return element.attrs["id"].startswith('liste-')
+
 
 class CrawlWgGesucht(Crawler):
     """Implementation of Crawler interface for WgGesucht"""
@@ -152,8 +163,8 @@ class CrawlWgGesucht(Crawler):
 
         findings = soup.find_all(liste_attribute_filter)
         existing_findings = [
-          e for e in findings
-          if isinstance(e, Tag) and e.has_attr('class') and not 'display-none' in e['class']
+            e for e in findings
+            if isinstance(e, Tag) and e.has_attr('class') and not 'display-none' in e['class']
         ]
 
         for row in existing_findings:
@@ -180,11 +191,11 @@ class CrawlWgGesucht(Crawler):
         return ' '.join(a_element.text.strip().split())
 
     def get_soup_from_url(
-        self,
-        url: str,
-        driver: Optional[Any]=None,
-        checkbox: bool=False,
-        afterlogin_string: Optional[str]=None) -> BeautifulSoup:
+            self,
+            url: str,
+            driver: Optional[Any] = None,
+            checkbox: bool = False,
+            afterlogin_string: Optional[str] = None) -> BeautifulSoup:
         """
         Creates a Soup object from the HTML at the provided URL
 
@@ -192,7 +203,6 @@ class CrawlWgGesucht(Crawler):
         necessary as we need to reload the page once for all filters to
         be applied correctly on wg-gesucht.
         """
-        self.rotate_user_agent()
         sess = requests.session()
         # First page load to set filters; response is discarded
         sess.get(url, headers=self.HEADERS)
@@ -200,7 +210,8 @@ class CrawlWgGesucht(Crawler):
         resp = sess.get(url, headers=self.HEADERS)
 
         if resp.status_code not in (200, 405):
-            logger.error("Got response (%i): %s", resp.status_code, resp.content)
+            logger.error("Got response (%i): %s",
+                         resp.status_code, resp.content)
         if self.config.use_proxy():
             return self.get_soup_with_proxy(url)
         if driver is not None:
@@ -208,6 +219,7 @@ class CrawlWgGesucht(Crawler):
             if re.search("initGeetest", driver.page_source):
                 self.resolve_geetest(driver)
             elif re.search("g-recaptcha", driver.page_source):
-                self.resolve_recaptcha(driver, checkbox, afterlogin_string or "")
+                self.resolve_recaptcha(
+                    driver, checkbox, afterlogin_string or "")
             return BeautifulSoup(driver.page_source, 'html.parser')
         return BeautifulSoup(resp.content, 'html.parser')

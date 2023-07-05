@@ -130,13 +130,14 @@ message: |
 #         - "--headless"
 captcha:
 
-# You can select whether to be notified by telegram, apprise or a mattermost
-# webhook. For all notifiers selected here a configuration must be provided
-# below.
+# You can select whether to be notified by telegram, apprise or by mattermost
+# or Slack webhooks. For all notifiers selected here a configuration must be 
+# provided below.
 # notifiers:
 #   - telegram
 #   - apprise
 #   - mattermost
+#   - slack
 notifiers:
 
 # Sending messages using Telegram requires a Telegram Bot configured.
@@ -171,6 +172,14 @@ mattermost:
 #   - gotifys://...
 #   - mailto://..
 apprise:
+
+# Sending messages to a Slack channel requires a webhook url. You can find 
+# a guide on how to set up a Slack webhook in the official documentation:
+# https://api.slack.com/messaging/webhooks
+#
+# slack:
+#   webhook_url: https://hooks.slack.com/services/T00000000/B00000000/XXXXXX...
+slack:
 
 # If you are running the web interface, you can configure Login with Telegram support
 # Follow the instructions here to register your domain with the Telegram bot:

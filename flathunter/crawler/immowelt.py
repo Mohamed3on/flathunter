@@ -89,7 +89,7 @@ class CrawlImmowelt(Crawler):
                     "div", attrs={"class": re.compile("IconFact.*")}
                   )
                 address = address.find("span").text
-            except IndexError:
+            except (IndexError, AttributeError):
                 address = ""
 
             processed_id = int(

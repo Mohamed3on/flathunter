@@ -6,6 +6,7 @@ from flathunter.config import YamlConfig
 from flathunter.logging import logger
 from flathunter.sender_apprise import SenderApprise
 from flathunter.sender_mattermost import SenderMattermost
+from flathunter.sender_slack import SenderSlack
 from flathunter.sender_telegram import SenderTelegram
 from flathunter.exceptions import HeartbeatException
 
@@ -38,6 +39,8 @@ class Heartbeat:
             self.notifier = SenderTelegram(config)
         elif 'apprise' in notifiers:
             self.notifier = SenderApprise(config)
+        elif 'slack' in notifiers:
+            self.notifier = SenderSlack(config)
         else:
             raise HeartbeatException("No notifier configured - check 'notifiers' config section!")
 

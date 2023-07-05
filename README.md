@@ -21,7 +21,7 @@ Setting up this project on your local machine can be a bit complicated if you ha
 
 Flathunter is a Python application which periodically [scrapes](https://en.wikipedia.org/wiki/Web_scraping) property listings sites, configured by the user, to find new rental real-estate listings, reporting them over messaging services.
 
-Currently available messaging services are [Telegram](https://telegram.org/), [Mattermost](https://mattermost.com/) and [Apprise](https://github.com/caronc/apprise).
+Currently available messaging services are [Telegram](https://telegram.org/), [Mattermost](https://mattermost.com/), [Apprise](https://github.com/caronc/apprise) and [Slack](https://slack.com/).
 
 ## Table of Contents
 
@@ -287,29 +287,30 @@ $ docker run --mount type=bind,source=$PWD/config.yaml,target=/config.yaml flath
 
 To make deployment with docker easier, most of the important configuration options can be set with environment variables. The current list of recognised variables includes:
 
-- FLATHUNTER_TARGET_URLS - a semicolon-separated list of URLs to crawl
-- FLATHUNTER_DATABASE_LOCATION - the location on disk of the sqlite database if required
-- FLATHUNTER_GOOGLE_CLOUD_PROJECT_ID - the Google Cloud Project ID, for Google Cloud deployments
-- FLATHUNTER_VERBOSE_LOG - set to any value to enable verbose logging
-- FLATHUNTER_LOOP_PERIOD_SECONDS - a number in seconds for the crawling interval
-- FLATHUNTER_MESSAGE_FORMAT - a format string for the notification messages, where `#CR#` will be replaced by newline
-- FLATHUNTER_NOTIFIERS - a comma-separated list of notifiers to enable (e.g. `telegram,mattermost`)
-- FLATHUNTER_TELEGRAM_BOT_TOKEN - the token for the Telegram notifier
-- FLATHUNTER_TELEGRAM_RECEIVER_IDS - a comma-separated list of receiver IDs for Telegram notifications
-- FLATHUNTER_MATTERMOST_WEBHOOK_URL - the webhook URL for Mattermost notifications
-- FLATHUNTER_WEBSITE_SESSION_KEY - the secret session key used to secure sessions for the flathunter website deployment
-- FLATHUNTER_WEBSITE_DOMAIN - the public domain of the flathunter website deployment
-- FLATHUNTER_2CAPTCHA_KEY - the API key for 2captcha
-- FLATHUNTER_IMAGETYPERZ_TOKEN - the API token for ImageTyperz
-- FLATHUNTER_HEADLESS_BROWSER - set to any value to configure Google Chrome to be launched in headless mode (necessary for Docker installations)
-- FLATHUNTER_FILTER_EXCLUDED_TITLES - a semicolon-separated list of words to filter out from matches
-- FLATHUNTER_FILTER_MIN_PRICE - the minimum price (integer euros)
-- FLATHUNTER_FILTER_MAX_PRICE - the maximum price (integer euros)
-- FLATHUNTER_FILTER_MIN_SIZE - the minimum size (integer square meters)
-- FLATHUNTER_FILTER_MAX_SIZE - the maximum size (integer square meters)
-- FLATHUNTER_FILTER_MIN_ROOMS - the minimum number of rooms (integer)
-- FLATHUNTER_FILTER_MAX_ROOMS - the maximum number of rooms (integer)
-- FLATHUNTER_FILTER_MAX_PRICE_PER_SQUARE - the maximum price per square meter (integer euros)
+ - FLATHUNTER_TARGET_URLS - a semicolon-separated list of URLs to crawl
+ - FLATHUNTER_DATABASE_LOCATION - the location on disk of the sqlite database if required
+ - FLATHUNTER_GOOGLE_CLOUD_PROJECT_ID - the Google Cloud Project ID, for Google Cloud deployments
+ - FLATHUNTER_VERBOSE_LOG - set to any value to enable verbose logging
+ - FLATHUNTER_LOOP_PERIOD_SECONDS - a number in seconds for the crawling interval
+ - FLATHUNTER_MESSAGE_FORMAT - a format string for the notification messages, where `#CR#` will be replaced by newline
+ - FLATHUNTER_NOTIFIERS - a comma-separated list of notifiers to enable (e.g. `telegram,mattermost,slack`)
+ - FLATHUNTER_TELEGRAM_BOT_TOKEN - the token for the Telegram notifier
+ - FLATHUNTER_TELEGRAM_RECEIVER_IDS - a comma-separated list of receiver IDs for Telegram notifications
+ - FLATHUNTER_MATTERMOST_WEBHOOK_URL - the webhook URL for Mattermost notifications
+ - FLATHUNTER_SLACK_WEBHOOK_URL - the webhook URL for Slack notifications
+ - FLATHUNTER_WEBSITE_SESSION_KEY - the secret session key used to secure sessions for the flathunter website deployment
+ - FLATHUNTER_WEBSITE_DOMAIN - the public domain of the flathunter website deployment
+ - FLATHUNTER_2CAPTCHA_KEY - the API key for 2captcha
+ - FLATHUNTER_IMAGETYPERZ_TOKEN - the API token for ImageTyperz
+ - FLATHUNTER_HEADLESS_BROWSER - set to any value to configure Google Chrome to be launched in headless mode (necessary for Docker installations)
+ - FLATHUNTER_FILTER_EXCLUDED_TITLES - a semicolon-separated list of words to filter out from matches
+ - FLATHUNTER_FILTER_MIN_PRICE - the minimum price (integer euros)
+ - FLATHUNTER_FILTER_MAX_PRICE - the maximum price (integer euros)
+ - FLATHUNTER_FILTER_MIN_SIZE - the minimum size (integer square meters)
+ - FLATHUNTER_FILTER_MAX_SIZE - the maximum size (integer square meters)
+ - FLATHUNTER_FILTER_MIN_ROOMS - the minimum number of rooms (integer)
+ - FLATHUNTER_FILTER_MAX_ROOMS - the maximum number of rooms (integer)
+ - FLATHUNTER_FILTER_MAX_PRICE_PER_SQUARE - the maximum price per square meter (integer euros)
 
 ### Google Cloud Deployment
 

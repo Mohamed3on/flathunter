@@ -4,9 +4,9 @@ import pytz
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import firestore
+from google.cloud.firestore_v1.base_query import BaseQuery
 
 from flathunter.logging import logger
-from flathunter.config import Config
 from flathunter.exceptions import PersistenceException
 
 
@@ -26,7 +26,8 @@ class GoogleCloudIdMaintainer:
     def mark_processed(self, expose_id):
         """Mark exposes as processed when we have processed them"""
         logger.debug('mark_processed(%d)', expose_id)
-        self.database.collection('processed').document(str(expose_id)).set({'id': expose_id})
+        self.database.collection('processed').document(
+            str(expose_id)).set({'id': expose_id})
 
     def is_processed(self, expose_id):
         """Returns true if an expose has already been marked as processed"""
@@ -39,7 +40,8 @@ class GoogleCloudIdMaintainer:
         record = expose.copy()
         record.update({'created_at': pytz.utc.localize(datetime.datetime.now()),
                        'created_sort': (0 - datetime.datetime.now().timestamp())})
-        self.database.collection('exposes').document(str(expose['id'])).set(record)
+        self.database.collection('exposes').document(
+            str(expose['id'])).set(record)
 
     def get_exposes_since(self, min_datetime):
         """Returns all exposes since the supplied datetime"""
@@ -85,10 +87,10 @@ class GoogleCloudIdMaintainer:
 
     def get_last_run_time(self):
         """Returns the datetime of the last run"""
-        # pylint: disable=no-member
-        for doc in self.database.collection('executions') \
-                .order_by('timestamp', direction=firestore.Query.DESCENDING) \
-                .limit(1).stream():
+
+        docs = self.database.collection('executions').order_by(
+            'timestamp', direction=BaseQuery.DESCENDING).limit(1).stream()
+        for doc in docs:
             return doc.to_dict()['timestamp']
 
     def update_last_run_time(self):

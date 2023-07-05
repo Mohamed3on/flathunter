@@ -20,7 +20,7 @@ class ExposeHelper:
     @staticmethod
     def get_price(expose):
         """Extracts the price from a price text"""
-        price_match = re.search(r'\d+([\.,]\d+)?', expose['price'])
+        price_match = re.search(r"\d+([\.,]\d+)?", expose["price"])
         if price_match is None:
             return None
         price_str = price_match[0].replace(",", ".")
@@ -29,7 +29,7 @@ class ExposeHelper:
     @staticmethod
     def get_size(expose):
         """Extracts the size from a size text"""
-        size_match = re.search(r'\d+([\.,]\d+)?', expose['size'])
+        size_match = re.search(r"\d+([\.,]\d+)?", expose["size"])
         if size_match is None:
             return None
         return float(size_match[0].replace(",", "."))
@@ -37,7 +37,7 @@ class ExposeHelper:
     @staticmethod
     def get_rooms(expose):
         """Extracts the number of rooms from a room text"""
-        rooms_match = re.search(r'\d+([\.,]\d+)?', expose['rooms'])
+        rooms_match = re.search(r"\d+([\.,]\d+)?", expose["rooms"])
         if rooms_match is None:
             return None
         return float(rooms_match[0].replace(",", "."))
@@ -50,8 +50,8 @@ class AlreadySeenFilter(AbstractFilter):
         self.id_watch = id_watch
 
     def is_interesting(self, expose):
-        if not self.id_watch.is_processed(expose['id']):
-            self.id_watch.mark_processed(expose['id'])
+        if not self.id_watch.is_processed(expose["id"]):
+            self.id_watch.mark_processed(expose["id"])
             return True, ""
         return False, f"Expose {expose['id']} has already been processed."
 
@@ -154,8 +154,8 @@ class TitleFilter(AbstractFilter):
 
     def is_interesting(self, expose):
         combined_excludes = "(" + ")|(".join(self.filtered_titles) + ")"
-        found_objects = re.search(
-            combined_excludes, expose['title'], re.IGNORECASE)
+        found_objects = re.search(combined_excludes, expose["title"], re.IGNORECASE)
+        # send all non matching regex patterns
         if not found_objects:
             return True, ""
         return False, f"Title '{expose['title']}' matches filtered titles."
@@ -180,6 +180,7 @@ class PPSFilter(AbstractFilter):
 
 class FilterBuilder:
     """Construct a filter chain"""
+
     filters: List[AbstractFilter]
 
     def __init__(self):
@@ -198,8 +199,7 @@ class FilterBuilder:
         self._append_filter_if_not_empty(MaxSizeFilter, config.max_size())
         self._append_filter_if_not_empty(MinRoomsFilter, config.min_rooms())
         self._append_filter_if_not_empty(MaxRoomsFilter, config.max_rooms())
-        self._append_filter_if_not_empty(
-            PPSFilter, config.max_price_per_square())
+        self._append_filter_if_not_empty(PPSFilter, config.max_price_per_square())
         return self
 
     def filter_already_seen(self, id_watch):
@@ -240,8 +240,7 @@ class Filter:
                 filtered_exposes.append(expose)
             else:
                 reasons = "\n - ".join(explanations)
-                logger.info("Excluding expose: %s\nReasons:\n - %s",
-                            expose['title'], reasons)
+                logger.info("Excluding expose: %s\nReasons:\n - %s", expose["title"], reasons)
 
         return filtered_exposes
 
