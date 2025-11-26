@@ -175,14 +175,20 @@ class SenderTelegram(Processor, Notifier):
         """
         size_number = ExposeHelper.get_size(expose)
         price_number = ExposeHelper.get_price(expose)
-        pps = price_number / size_number
-        rounded_pps = round(pps, 1)
+
+        if size_number and price_number:
+            pps = price_number / size_number
+            rounded_pps = round(pps, 1)
+        else:
+            pps = None
+            rounded_pps = None
 
         preferred_max_pps = self.config.telegram_preferred_max_pps()
 
-        if preferred_max_pps and pps < preferred_max_pps:
+        if rounded_pps is None:
+            pps_string = "N/A"
+        elif preferred_max_pps and pps < preferred_max_pps:
             pps_string = f"<b>{rounded_pps}</b>"
-
         else:
             pps_string = f"<i>{rounded_pps}</i>"
 

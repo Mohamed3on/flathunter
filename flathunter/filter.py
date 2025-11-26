@@ -19,12 +19,29 @@ class ExposeHelper:
 
     @staticmethod
     def get_price(expose):
-        """Extracts the price from a price text"""
-        price_match = re.search(r"\d+([\.,]\d+)?", expose["price"])
-        if price_match is None:
+        """Extracts the price from a price text (handles German number format)"""
+        price_text = expose.get("price", "")
+        if not price_text:
             return None
-        price_str = price_match[0].replace(",", ".")
-        return float(price_str)
+        # Remove thousands separators (dots) and convert decimal comma to dot
+        # German format: 1.516,50 -> 1516.50
+        price_clean = re.sub(r"[^\d,.]", "", price_text)
+        # If there's both dot and comma, dot is thousands sep, comma is decimal
+        if "." in price_clean and "," in price_clean:
+            price_clean = price_clean.replace(".", "").replace(",", ".")
+        # If only dot and it's followed by 3 digits at end, it's thousands sep
+        elif "." in price_clean:
+            parts = price_clean.split(".")
+            if len(parts) == 2 and len(parts[1]) == 3:
+                price_clean = price_clean.replace(".", "")
+            # Otherwise treat dot as decimal
+        # If only comma, it's decimal separator
+        elif "," in price_clean:
+            price_clean = price_clean.replace(",", ".")
+        try:
+            return float(price_clean)
+        except ValueError:
+            return None
 
     @staticmethod
     def get_size(expose):

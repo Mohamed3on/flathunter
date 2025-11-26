@@ -19,6 +19,9 @@ class GMapsDurationProcessor(Processor):
 
     def process_expose(self, expose):
         """Calculate the durations for an expose"""
+        if expose.get('address') is None:
+            expose['durations'] = ''
+            return expose
         expose['durations'] = self.get_formatted_durations(expose['address']).strip()
         return expose
 
