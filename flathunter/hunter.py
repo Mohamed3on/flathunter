@@ -42,7 +42,7 @@ class Hunter:
             ]
         )
 
-    def hunt_flats(self, max_pages=None):
+    def hunt_flats(self, max_pages: None|int = None):
         """Crawl, process and filter exposes"""
         filter_set = Filter.builder().read_config(self.config).filter_already_seen(self.id_watch).build()
 

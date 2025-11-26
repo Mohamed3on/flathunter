@@ -1,7 +1,7 @@
 import unittest
 import re
 from typing import Optional, Dict, List
-from flathunter.crawler.immowelt import CrawlImmowelt
+from flathunter.crawler.immowelt import Immowelt
 from flathunter.hunter import Hunter 
 from flathunter.idmaintainer import IdMaintainer
 from test.dummy_crawler import DummyCrawler
@@ -27,7 +27,7 @@ class HunterTest(unittest.TestCase):
 
     DUMMY_CONFIG = """
 urls:
-  - https://www.immowelt.de/liste/berlin/wohnungen/mieten?roomi=2&prima=1500&wflmi=70&sort=createdate%2Bdesc
+  - https://www.immowelt.de/classified-search?distributionTypes=Rent&estateTypes=House,Apartment&locations=AD08DE8634&order=Default&m=homepage_new_search_classified_search_result
 
 google_maps_api:
   key: SOME_KEY
@@ -111,7 +111,7 @@ excluded_titles:
 
     def test_hunt_flats(self):
         config = StringConfig(string=self.DUMMY_CONFIG)
-        config.set_searchers([CrawlImmowelt(config)])
+        config.set_searchers([Immowelt(config)])
         hunter = Hunter(config, IdMaintainer(":memory:"))
         exposes = hunter.hunt_flats()
         self.assertTrue(count(exposes) > 0, "Expected to find exposes")

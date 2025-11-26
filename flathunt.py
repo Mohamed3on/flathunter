@@ -13,7 +13,7 @@ from flathunter.idmaintainer import IdMaintainer
 from flathunter.hunter import Hunter
 from flathunter.config import Config
 from flathunter.heartbeat import Heartbeat
-from flathunter.time_utils import wait_during_period
+from flathunter.time_utils import get_random_time_jitter, wait_during_period
 
 __author__ = "Jan Harrie"
 __version__ = "1.0"
@@ -40,7 +40,11 @@ def launch_flat_hunt(config, heartbeat: Heartbeat):
 
         counter += 1
         counter = heartbeat.send_heartbeat(counter)
-        time.sleep(config.loop_period_seconds())
+        if config.random_jitter_enabled():
+            sleep_period = get_random_time_jitter(config.loop_period_seconds())
+        else:
+            sleep_period = config.loop_period_seconds()
+        time.sleep(sleep_period)
         hunter.hunt_flats()
 
 

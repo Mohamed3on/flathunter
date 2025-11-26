@@ -53,7 +53,7 @@ filters:
             config_file.close()
             created = True
         config = Config("config.yaml")
-        self.assertTrue(len(config.get('urls', [])) > 0, "Expected URLs in config file")
+        self.assertTrue(len(config.get('urls') or []) > 0, "Expected URLs in config file")
         if created:
             os.remove("config.yaml")
 
@@ -62,7 +62,7 @@ filters:
           temp.write(self.DUMMY_CONFIG)
           temp.flush()
           config = Config(temp.name) 
-       self.assertTrue(len(config.get('urls', [])) > 0, "Expected URLs in config file")
+       self.assertTrue(len(config.get('urls') or []) > 0, "Expected URLs in config file")
 
     def test_loads_config_from_string(self):
        config = StringConfig(string=self.EMPTY_FILTERS_CONFIG)

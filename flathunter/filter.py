@@ -9,7 +9,7 @@ from flathunter.logging import logger
 class AbstractFilter(ABC):
     """Abstract base class for filters"""
 
-    def is_interesting(self, _expose):
+    def is_interesting(self, _expose) -> bool:
         """Return True if an expose should be included in the output, False otherwise"""
         return True
 

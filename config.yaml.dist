@@ -2,14 +2,17 @@
 # Enable verbose mode (print DEBUG log messages)
 # verbose: true
 
-# Should the bot endlessly looop through the URLs?
-# Between each loop it waits for <sleeping_time> seconds.
-# Note that Ebay will (temporarily) block your IP if you
-# poll too often - don't lower this below 600 seconds if you
-# are crawling Ebay.
+# Should the bot loop through the URLs endlessly?
+# Between each loop it waits for <sleeping_time> seconds plus
+# a random delay of up to ten percent to circumvent bot detection
+# systems. To have flathunter wait exactly <sleeping_time> seconds,
+# set random_jitter to False. Note that Ebay will (temporarily)
+# block your IP if you poll too often - don't lower <sleeping_time>
+# below 600 seconds if you are crawling Ebay.
 loop:
     active: yes
     sleeping_time: 600
+    random_jitter: True
 
 # Location of the Database to store already seen offerings
 # Defaults to the current directory
@@ -17,7 +20,7 @@ loop:
 
 # List the URLs containing your filter properties below.
 # Currently supported services: www.immobilienscout24.de,
-# www.immowelt.de, www.wg-gesucht.de, and www.kleinanzeigen.de.
+# www.immowelt.de, www.wg-gesucht.de, www.kleinanzeigen.de and vrm-immo.de.
 # List the URLs in the following format:
 # urls:
 # 	- https://www.immobilienscout24.de/Suche/...
@@ -43,13 +46,6 @@ urls:
 #   max_size: 80
 #   max_price_per_square: 1000
 filters:
-
-# There are often city districts in the address which
-# Google Maps does not like. Use this blacklist to remove
-# districts from the search.
-#
-# blacklist:
-#   - Innenstadt
 
 # If an expose includes an address, the bot is capable of
 # displaying the distance and time to travel (duration) to
@@ -85,10 +81,11 @@ filters:
 #       - gm_id: driving
 #         title: "Auto"
 
-# Multiline message (yes, the | is supposed to be there),
-# to format the message received from the Telegram bot.
+# Multiline string (yes, the | is supposed to be there),
+# to format the message received from Telegram or Apprise.
 #
 # Available placeholders:
+#   - {crawler}: The name of the crawler
 # 	- {title}: The title of the expose
 #	- {rooms}: Number of rooms
 #	- {price}: Price for the flat
@@ -102,6 +99,11 @@ message: |
     Ort: {address}
 
     {url}
+
+# (Multiline) string to format the title for the message received from Apprise.
+#
+# For available placeholders see above
+title: "{crawler}: {title}"
 
 # Calculating durations requires access to the Google Maps API.
 # Below you can configure the URL to access the API, with placeholders.
@@ -117,21 +119,23 @@ message: |
 
 # If you are planning to scrape immoscout24.de, the bot will need
 # to circumvent the sites captcha protection by using a captcha
-# solving service. Register at either imagetypers or 2captcha
-# (the former is prefered), desposit some funds, uncomment the
-# corresponding lines below and replace your API key/token.
-# Use driver_arguments to provide options for Chrome WebDriver.
+# solving service. Register at either imagetypers, 2captcha or
+# capmonster (as at December 2024, Capmonster is prefered), desposit
+# some funds, uncomment the corresponding lines below and replace your
+# API key/token. Use driver_arguments to provide options for Chrome WebDriver.
 # captcha:
 #       imagetyperz:
 #             token: alskdjaskldjfklj
 #       2captcha:
+#             api_key: alskdjaskldjfklj
+#       capmonster:
 #             api_key: alskdjaskldjfklj
 #       driver_arguments:
 #         - "--headless"
 captcha:
 
 # You can select whether to be notified by telegram, apprise or by mattermost
-# or Slack webhooks. For all notifiers selected here a configuration must be 
+# or Slack webhooks. For all notifiers selected here a configuration must be
 # provided below.
 # notifiers:
 #   - telegram
@@ -167,13 +171,19 @@ mattermost:
 # Apprise allows to send notifications to a wide variety of services.
 # You can find a description how to set up an Apprise url with the official
 # documentation: https://github.com/caronc/apprise
+# Signal notifications are documented here https://github.com/caronc/apprise/wiki/Notify_signal
+# When using the apprise-api (https://github.com/caronc/apprise-api) service,
+# set the limit to 6 images or increase the attachment limit in your apprise-api instance.
 #
 # apprise:
 #   - gotifys://...
 #   - mailto://..
+#   - signal://localhost:9922/{FromPhoneNo}
+# apprise_notify_with_images: true
+# apprise_image_limit: 6
 apprise:
 
-# Sending messages to a Slack channel requires a webhook url. You can find 
+# Sending messages to a Slack channel requires a webhook url. You can find
 # a guide on how to set up a Slack webhook in the official documentation:
 # https://api.slack.com/messaging/webhooks
 #

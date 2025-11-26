@@ -11,11 +11,11 @@ A bot to help people with their rental real-estate search. 🏠🤖
 
 The rents are too high - you can't find a flat at a reasonable price in a place you actually want to live. Too many people apply for the good flats - you need to get apply very quickly to have any chance of getting a place. A bot seems like a good solution to this, but it's really just making things worse.
 
-Use this bot to help with your flatsearch - it's a much better use of your time and resources than hitting refresh on a property portal every five minutes. Once you found a place for yourself (lucky you!), consider supporting alternatives like the [Mietshäusersyndikat](https://www.syndikat.org/en/the-joint-venture/). The MHS projects are always [looking for funding](https://www.syndikat.org/en/funding/) (in the form of interest-bearing loans from individuals) - if you have some thousand euros sitting around on your bank account, you can improve the housing situation in Germany and earn some interest on your savings by [lending cash](https://www.syndikat.org/en/direct-loans/) to one of the projects for a year or two.
+Use this bot to help with your flatsearch - it's a much better use of your time and resources than hitting refresh on a property portal every five minutes. Once you found a place for yourself, consider supporting alternatives like the [Mietshäusersyndikat](https://www.syndikat.org/en/the-joint-venture/). The MHS projects (like [the one I live in](https://teichwiesel.de/unterstuetzen/)) are always [looking for funding](https://www.syndikat.org/en/funding/) in the form of interest-bearing loans from individuals. If you have some thousand euros sitting around on your bank account, you can improve the housing situation in Germany and earn some interest on your savings by [lending cash](https://www.syndikat.org/en/direct-loans/) to one of the projects for a year or two.
 
 ## If you are not a Python developer / power-user
 
-Setting up this project on your local machine can be a bit complicated if you have no experience with Python. This `README` is detailed, and there is a configuration wizard, but it's not super user-friendly. If you are searching for properties in Berlin, you can use the hosted version at https://flathunter.codders.io . You can login there with your Telegram ID and setup a basic search without downloading the project.
+Setting up this project on your local machine can be a bit complicated if you have no experience with Python. This `README` is detailed, and there is a configuration wizard, but it's not super user-friendly. If you are searching for properties in Berlin, you can use the hosted version at https://flathunter.codders.de . You can login there with your Telegram ID and setup a basic search without downloading the project.
 
 ## Description
 
@@ -32,45 +32,37 @@ Currently available messaging services are [Telegram](https://telegram.org/), [M
   - [Table of Contents](#table-of-contents)
   - [Background](#background)
   - [Prerequisites](#prerequisites)
-  - [Install](#install)
-    - [Installation on Linux](#installation-on-linux)
-  - [Usage](#usage)
-    - [Configuration](#configuration)
-      - [URLs](#urls)
-      - [Telegram](#telegram)
-      - [Captchas](#captchas)
-      - [ImmoScout24 Cookie Override](#immoscout24-cookie-override)
-      - [Proxy](#proxy)
-      - [Google API](#google-api)
-    - [Command-line Interface](#command-line-interface)
-    - [Web Interface](#web-interface)
-    - [Docker](#docker)
-      - [With Docker Compose](#with-docker-compose)
-      - [With plain Docker](#with-plain-docker)
-      - [Environment Configuration](#environment-configuration)
-    - [Google Cloud Deployment](#google-cloud-deployment)
-      - [Google App Engine Deployment](#google-app-engine-deployment)
-      - [Google Cloud Run Deployment](#google-cloud-run-deployment)
-  - [Testing](#testing)
-  - [Maintainers](#maintainers)
-  - [Credits](#credits)
-    - [Contributers](#contributers)
-  - [Contributing](#contributing)
+  - [Installation on Linux](#installation-on-linux)
+- [Usage](#usage)
+  - [Configuration](#configuration)
+    - [URLs](#urls)
+    - [Telegram](#telegram)
+    - [Capmonster](#capmonster)
+    - [Proxy](#proxy)
+    - [Google API](#google-api)
+  - [Command-line Interface](#command-line-interface)
+  - [Web Interface](#web-interface)
+  - [Docker](#docker)
+  - [Google Cloud Deployment](#google-cloud-deployment)
+- [Testing](#testing)
+- [Maintainers](#maintainers)
+- [Credits](#credits)
+  - [Contributers](#contributers)
+- [Contributing](#contributing)
 
 ## Background
 
-There are at least four different rental property marketplace sites that are widely used in Germany - [ImmoScout24](https://www.immobilienscout24.de/), [Immowelt](https://www.immowelt.de/), [WG-Gesucht](https://www.wg-gesucht.de/) and [eBay Kleinanzeigen](https://www.kleinanzeigen.de/). Most people end up searching through listings on all four sites on an almost daily basis during their rental search.
+There are at least four different rental property marketplace sites that are widely used in Germany - [ImmoScout24](https://www.immobilienscout24.de/), [Immowelt](https://www.immowelt.de/), [WG-Gesucht](https://www.wg-gesucht.de/) and [Kleinanzeigen](https://www.kleinanzeigen.de/). Most people end up searching through listings on all four sites on an almost daily basis during their rental search.
 In Italy on the other hand, [idealista](https://www.idealista.it), [Subito](https://www.subito.it) and [Immobiliare.it](https://www.immobiliare.it) are very common for real-estate hunting.
 
 With `Flathunter`, instead of visiting the same pages on the same sites every day, you can set the system up to scan every site, filtering by your search criteria, and notify you when new rental property becomes available that meets your criteria.
 
 ## Prerequisites
-
-- [Python 3.8+](https://www.python.org/)
-- [pipenv](https://pipenv.pypa.io/en/latest/)
-- [Chromium](https://www.chromium.org/) / [Google Chrome](https://www.google.com/chrome/) (_optional to scan ads on immobilienscout24.de_)
-- [Docker]() (_optional_)
-- [GCloud CLI]() (_optional_)
+* [Python 3.10+](https://www.python.org/)
+* [pipenv](https://pipenv.pypa.io/en/latest/)
+* [Chromium](https://www.chromium.org/) / [Google Chrome](https://www.google.com/chrome/) (*optional to scan ads on immobilienscout24.de, and Kleinanzeigen)
+* [Docker]() (*optional*)
+* [GCloud CLI]() (*optional*)
 
 ## Install
 
@@ -124,7 +116,7 @@ $ git clone https://github.com/flathunters/flathunter.git
 add a new User and configure the permissions
 
 ```sh
-$ useradd flathunter
+$ useradd -m flathunter
 $ chown flathunter:flathunter -R flathunter/
 ```
 
@@ -171,11 +163,11 @@ $ python config_wizard.py
 
 To configure the searches, simply visit the property portal of your choice (e.g. ImmoScout24), configure the search on the website to match your search criteria, then copy the URL of the results page into the config file. You can add as many URLs as you like, also multiple from the same website if you have multiple different criteria (e.g. running the same search in different areas).
 
-- Currently, eBay Kleinanzeigen, Immowelt, WG-Gesucht and Idealista only crawl the first page, so make sure to **sort by newest offers**.
-- Your links should point to the German version of the websites (in the case of eBay Kleinanzeigen, Immowelt, ImmoScout24 and WG-Gesucht), since it is tested only there. Otherwise you might have problems.
-- For Idealista, the link should point to the Italian version of the website, for the same reason reported above.
-- For Immobiliare, the link should point to the Italian version of the website, for the same reasons reported above.
-- For Subito, the link should point to the Italian version of the website, for the same reasons reported above.
+ * Currently, Kleinanzeigen, Immowelt, WG-Gesucht and Idealista only crawl the first page, so make sure to **sort by newest offers**.
+ * Your links should point to the German version of the websites (in the case of Kleinanzeigen, Immowelt, ImmoScout24 and WG-Gesucht), since it is tested only there. Otherwise you might have problems.
+ * For Idealista, the link should point to the Italian version of the website, for the same reason reported above.
+ * For Immobiliare, the link should point to the Italian version of the website, for the same reasons reported above.
+ * For Subito, the link should point to the Italian version of the website, for the same reasons reported above.
 
 #### Telegram
 
@@ -189,9 +181,18 @@ $ curl https://api.telegram.org/bot[BOT-TOKEN]/getUpdates
 
 to get list of messages the Bot has received. You will see your Chat ID in there.
 
+#### Bot Detection
+
+Some sites (including Kleinanzeigen and ImmoScout24) implement bot detection to prevent scripts from scraping their sites. Flathunter includes support for running a headless Chrome browser to simulate human requests to the websites. **For crawling Kleinanzeigen and ImmoScout24, you will need to install Google Chrome**
+
 #### Captchas
 
-Some sites (including ImmoScout24) implement a Captcha to avoid being crawled by evil web scrapers. Since our crawler is not an evil one, the people at [2Captcha](https://2captcha.com) and [Imagetyperz](https://imagetyperz.com/) provide services that help you solve them. You can head over to one of those services and buy some credit for captcha solving. You will need to install the API key for your captcha-solving account in the `config.yaml`. Check out `config.yaml.dist` to see how to configure `2Captcha` or `Imagetyperz` with Flathunter. **At this time, ImmoScout24 can not be crawled by Flathunter without using 2Captcha/Imagetyperz. Buying captcha solutions does not guarantee that you will get past the ImmoScout24 bot detection (see [#296](https://github.com/flathunters/flathunter/issues/296), [#302](https://github.com/flathunters/flathunter/issues/302))**.
+Some sites (including ImmoScout24) implement a Captcha to avoid being crawled by evil web scrapers. Since our crawler is not an evil one, the people at [2Captcha](https://2captcha.com), [Imagetyperz](https://imagetyperz.com/) and [Capmonster](https://capmonster.cloud/) provide services that help you solve them. You can head over to one of those services and buy some credit for captcha solving. You will need to install the API key for your captcha-solving account in the `config.yaml`. Check out `config.yaml.dist` to see how to configure `2Captcha`, `Imagetyperz` or `Capmonster` with Flathunter. **At this time, ImmoScout24 can not be crawled by Flathunter without using Capmonster. Buying captcha solutions does not guarantee that you will get past the ImmoScout24 bot detection (see [#296](https://github.com/flathunters/flathunter/issues/296), [#302](https://github.com/flathunters/flathunter/issues/302))**.
+
+#### Capmonster
+
+Currently, [Capmonster](https://capmonster.cloud/) is the only implemented captcha-solving service that solves the captchas on ImmoScout24. You will need to set
+the `FLATHUNTER_CAPMONSTER_KEY` environment variable or add the key to your `config.yaml` to solve the captchas.
 
 #### ImmoScout24 Cookie Override
 
@@ -260,13 +261,13 @@ You can either use just Docker or Docker Compose to run the app containerized. W
 2. To build the image, run inside the project's root directory:
 
 ```sh
-docker-compose build
+docker compose build
 ```
 
 3. To run the docker container, run inside the project's root directory:
 
 ```sh
-docker-compose up
+docker compose up
 ```
 
 #### With plain Docker
@@ -292,6 +293,7 @@ To make deployment with docker easier, most of the important configuration optio
  - FLATHUNTER_GOOGLE_CLOUD_PROJECT_ID - the Google Cloud Project ID, for Google Cloud deployments
  - FLATHUNTER_VERBOSE_LOG - set to any value to enable verbose logging
  - FLATHUNTER_LOOP_PERIOD_SECONDS - a number in seconds for the crawling interval
+ - FLATHUNTER_RANDOM_JITTER_ENABLED - whether a random delay should be added to the crawling interval, truthy/falsy value expected
  - FLATHUNTER_MESSAGE_FORMAT - a format string for the notification messages, where `#CR#` will be replaced by newline
  - FLATHUNTER_NOTIFIERS - a comma-separated list of notifiers to enable (e.g. `telegram,mattermost,slack`)
  - FLATHUNTER_TELEGRAM_BOT_TOKEN - the token for the Telegram notifier
@@ -302,6 +304,7 @@ To make deployment with docker easier, most of the important configuration optio
  - FLATHUNTER_WEBSITE_DOMAIN - the public domain of the flathunter website deployment
  - FLATHUNTER_2CAPTCHA_KEY - the API key for 2captcha
  - FLATHUNTER_IMAGETYPERZ_TOKEN - the API token for ImageTyperz
+ - FLATHUNTER_IS24_COOKIE - set to the value of the reese84 immoscout cookie to help with bot detection
  - FLATHUNTER_HEADLESS_BROWSER - set to any value to configure Google Chrome to be launched in headless mode (necessary for Docker installations)
  - FLATHUNTER_FILTER_EXCLUDED_TITLES - a semicolon-separated list of words to filter out from matches
  - FLATHUNTER_FILTER_MIN_PRICE - the minimum price (integer euros)
@@ -401,6 +404,8 @@ This project is maintained by the members of the [Flat Hunters](https://github.c
 ## Credits
 
 The original code was contributed by [@NodyHub](https://github.com/NodyHub), whose original idea this project was.
+
+Many thanks to the devs of [Fredy](https://github.com/orangecoding/fredy) for reverse engineering the ImmoScout24 mobile API and sharing their insights.
 
 ### Contributers
 

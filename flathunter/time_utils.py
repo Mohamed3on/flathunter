@@ -1,6 +1,7 @@
 """Utilities for dealing with times."""
 from time import sleep
 from datetime import datetime
+from random import randint
 
 from flathunter.logging import logger
 
@@ -29,3 +30,11 @@ def wait_during_period(time_from, time_till):
     if is_current_time_between(time_from, time_till):
         logger.info("Paused loop. Waiting till %s.", time_till)
         sleep(get_time_span_in_secs(datetime.now().time(), time_till))
+
+
+def get_random_time_jitter(loop_period_seconds: int) -> int:
+    """Adds a random delay of up to ten percent to the loop period to evade bot detection."""
+    ceil = int(loop_period_seconds * 1.1)
+    sleep_seconds = randint(loop_period_seconds, ceil)
+    logger.debug("Seconds until next run: %s", sleep_seconds)
+    return sleep_seconds

@@ -106,7 +106,7 @@ class ConfigWizardTest(unittest.TestCase):
             "https://www.immobilienscout24.de/Suche/de/berlin/berlin/wohnung-mieten?sorting=2"
         ]
         res = config_wizard.configure_captcha(urls, self.config)
-        self.assertEqual((res or {}).get("captcha", {}).get("2captcha", {}).get("api_key"), "12345")
+        self.assertEqual((res or {}).get("captcha", {}).get("capmonster", {}).get("api_key"), "12345")
 
     def test_configure_captcha_is_none(self):
         urls = [

@@ -17,23 +17,21 @@ def get_title(title_row: Tag) -> str:
 
 def get_url(title_row: Tag) -> Optional[str]:
     """Parse the expose URL from the expose title element"""
-    a_element = title_row.find('a')
-    if not isinstance(a_element, Tag) \
-            or not a_element.has_attr('href') \
-            or not isinstance(a_element.attrs['href'], str):
+    a_element = title_row.find("a")
+    if not isinstance(a_element, Tag) or not a_element.has_attr("href") or not isinstance(a_element.attrs["href"], str):
         return None
-    return 'https://www.wg-gesucht.de/' + remove_prefix(a_element.attrs['href'], "/")
+    return "https://www.wg-gesucht.de/" + remove_prefix(a_element.attrs["href"], "/")
 
 
 def extract_href_style(row: Tag) -> Optional[str]:
     """Extract the style attribute from a image div"""
-    div = row.find('div', {"class": "card_image"})
+    div = row.find("div", {"class": "card_image"})
     if not isinstance(div, Tag):
         return None
-    a_element = div.find('a')
-    if not isinstance(a_element, Tag) or not a_element.has_attr('style'):
+    a_element = div.find("a")
+    if not isinstance(a_element, Tag) or not a_element.has_attr("style"):
         return None
-    style = a_element.attrs['style']
+    style = a_element.attrs["style"]
     if not isinstance(style, str):
         return None
     return style
@@ -44,7 +42,7 @@ def get_image_url(row: Tag) -> Optional[str]:
     href_style = extract_href_style(row)
     if href_style is None:
         return None
-    image_match = re.match(r'background-image: url\((.*)\);', href_style)
+    image_match = re.match(r"background-image: url\((.*)\);", href_style)
     if image_match is None:
         return None
     return image_match[1]
@@ -56,10 +54,8 @@ def get_rooms(row: Tag) -> str:
     if not isinstance(details_el, Tag):
         return ""
     detail_string = details_el.text.strip().split("|")
-    details_array = list(map(lambda s: re.sub(' +', ' ',
-                                              re.sub(r'\W', ' ', s.strip())),
-                             detail_string))
-    rooms_tmp = re.findall(r'\d Zimmer', details_array[0])
+    details_array = list(map(lambda s: re.sub(" +", " ", re.sub(r"\W", " ", s.strip())), detail_string))
+    rooms_tmp = re.findall(r"\d Zimmer", details_array[0])
     return rooms_tmp[0][:1] if rooms_tmp else ""
 
 
@@ -76,7 +72,7 @@ def get_dates(numbers_row: Tag) -> List[str]:
     date_el = numbers_row.find("div", {"class": "text-center"})
     if not isinstance(date_el, Tag):
         return []
-    return re.findall(r'\d{2}.\d{2}.\d{4}', date_el.text)
+    return re.findall(r"\d{2}.\d{2}.\d{4}", date_el.text)
 
 
 def get_size(numbers_row: Tag) -> List[str]:
@@ -84,12 +80,12 @@ def get_size(numbers_row: Tag) -> List[str]:
     size_el = numbers_row.find("div", {"class": "text-right"})
     if not isinstance(size_el, Tag):
         return []
-    return re.findall(r'\d{1,4}\sm²', size_el.text)
+    return re.findall(r"\d{1,4}\sm²", size_el.text)
 
 
 def parse_expose_element_to_details(row: Tag, crawler: str) -> Optional[Dict]:
     """Parse an Expose soup element to an Expose details dictionary"""
-    title_row = row.find('h3', {"class": "truncate_title"})
+    title_row = row.find("h3", {"class": "truncate_title"})
     if title_row is None or not isinstance(title_row, Tag):
         logger.warning("No title found - skipping")
         return None
@@ -120,21 +116,21 @@ def parse_expose_element_to_details(row: Tag, crawler: str) -> Optional[Dict]:
         title = f"{title} ab dem {dates[0]}"
 
     details = {
-        'id': int(url.split('.')[-2]),
-        'image': image,
-        'url': url,
-        'title': title,
-        'price': price,
-        'size': size[0],
-        'rooms': rooms,
-        'address': url,
-        'crawler': crawler
+        "id": int(url.split(".")[-2]),
+        "image": image,
+        "url": url,
+        "title": title,
+        "price": price,
+        "size": size[0],
+        "rooms": rooms,
+        "address": url,
+        "crawler": crawler,
     }
     if len(dates) == 2:
-        details['from'] = dates[0]
-        details['to'] = dates[1]
+        details["from"] = dates[0]
+        details["to"] = dates[1]
     elif len(dates) == 1:
-        details['from'] = dates[0]
+        details["from"] = dates[0]
     return details
 
 
@@ -144,13 +140,13 @@ def liste_attribute_filter(element: Union[Tag, str]) -> bool:
         return False
     if "id" not in element.attrs:
         return False
-    return element.attrs["id"].startswith('liste-')
+    return element.attrs["id"].startswith("liste-")
 
 
 class CrawlWgGesucht(Crawler):
     """Implementation of Crawler interface for WgGesucht"""
 
-    URL_PATTERN = re.compile(r'https://www\.wg-gesucht\.de')
+    URL_PATTERN = re.compile(r"https://www\.wg-gesucht\.de")
 
     def __init__(self, config):
         super().__init__(config)
@@ -163,8 +159,7 @@ class CrawlWgGesucht(Crawler):
 
         findings = soup.find_all(liste_attribute_filter)
         existing_findings = [
-            e for e in findings
-            if isinstance(e, Tag) and e.has_attr('class') and not 'display-none' in e['class']
+            e for e in findings if isinstance(e, Tag) and e.has_attr("class") and not "display-none" in e["class"]
         ]
 
         for row in existing_findings:
@@ -173,14 +168,14 @@ class CrawlWgGesucht(Crawler):
                 continue
             entries.append(details)
 
-        logger.debug('Number of entries found: %d', len(entries))
+        logger.debug("Number of entries found: %d", len(entries))
 
         return entries
 
     def load_address(self, url) -> Optional[str]:
         """Extract address from expose itself"""
         response = self.get_soup_from_url(url)
-        address_div = response.find('div', {"class": "col-sm-4 mb10"})
+        address_div = response.find("div", {"class": "col-sm-4 mb10"})
         if not isinstance(address_div, Tag):
             logger.debug("No address in response for URL: %s", url)
             return None
@@ -188,14 +183,11 @@ class CrawlWgGesucht(Crawler):
         if not isinstance(a_element, Tag):
             logger.debug("No address in response for URL: %s", url)
             return None
-        return ' '.join(a_element.text.strip().split())
+        return " ".join(a_element.text.strip().split())
 
     def get_soup_from_url(
-            self,
-            url: str,
-            driver: Optional[Any] = None,
-            checkbox: bool = False,
-            afterlogin_string: Optional[str] = None) -> BeautifulSoup:
+        self, url: str, driver: Optional[Any] = None, checkbox: bool = False, afterlogin_string: Optional[str] = None
+    ) -> BeautifulSoup:
         """
         Creates a Soup object from the HTML at the provided URL
 
@@ -210,8 +202,7 @@ class CrawlWgGesucht(Crawler):
         resp = sess.get(url, headers=self.HEADERS)
 
         if resp.status_code not in (200, 405):
-            logger.error("Got response (%i): %s",
-                         resp.status_code, resp.content)
+            logger.error("Got response (%i): %s", resp.status_code, resp.content)
         if self.config.use_proxy():
             return self.get_soup_with_proxy(url)
         if driver is not None:
@@ -219,7 +210,6 @@ class CrawlWgGesucht(Crawler):
             if re.search("initGeetest", driver.page_source):
                 self.resolve_geetest(driver)
             elif re.search("g-recaptcha", driver.page_source):
-                self.resolve_recaptcha(
-                    driver, checkbox, afterlogin_string or "")
-            return BeautifulSoup(driver.page_source, 'html.parser')
-        return BeautifulSoup(resp.content, 'html.parser')
+                self.resolve_recaptcha(driver, checkbox, afterlogin_string or "")
+            return BeautifulSoup(driver.page_source, "html.parser")
+        return BeautifulSoup(resp.content, "html.parser")

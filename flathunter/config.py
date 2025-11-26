@@ -1,6 +1,6 @@
 """Wrap configuration options as an object"""
 import os
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List, Protocol
 
 import json
 import yaml
@@ -9,67 +9,98 @@ from dotenv import load_dotenv
 from flathunter.captcha.captcha_solver import CaptchaSolver
 from flathunter.captcha.imagetyperz_solver import ImageTyperzSolver
 from flathunter.captcha.twocaptcha_solver import TwoCaptchaSolver
-from flathunter.crawler.ebaykleinanzeigen import CrawlEbayKleinanzeigen
-from flathunter.crawler.idealista import CrawlIdealista
-from flathunter.crawler.immobiliare import CrawlImmobiliare
-from flathunter.crawler.immobilienscout import CrawlImmobilienscout
-from flathunter.crawler.immowelt import CrawlImmowelt
-from flathunter.crawler.meinestadt import CrawlMeineStadt
-from flathunter.crawler.wggesucht import CrawlWgGesucht
-from flathunter.crawler.subito import CrawlSubito
+from flathunter.captcha.capmonster_solver import CapmonsterSolver
+from flathunter.crawler.kleinanzeigen import Kleinanzeigen
+from flathunter.crawler.idealista import Idealista
+from flathunter.crawler.immobiliare import Immobiliare
+from flathunter.crawler.immobilienscout import Immobilienscout
+from flathunter.crawler.immowelt import Immowelt
+from flathunter.crawler.wggesucht import WgGesucht
+from flathunter.crawler.vrmimmo import VrmImmo
+from flathunter.crawler.subito import Subito
 from flathunter.filter import Filter
 from flathunter.logging import logger
 from flathunter.exceptions import ConfigException
 
 load_dotenv()
 
+class Readenv(Protocol):
+    """Type information for the read_env callback"""
+    @staticmethod
+    def __call__() -> Optional[str]: ...
 
-def _read_env(key: str, fallback: Optional[str] = None) -> Optional[str]:
-    """read the given key from environment"""
-    return os.environ.get(key, fallback)
+def _read_env(key: str, fallback: Optional[str] = None) -> Readenv:
+    """ read the given key from environment"""
+    return lambda: os.environ.get(key, fallback)
 
+def _to_bool(value: Any) -> bool:
+    """Cast config parameters to booleans"""
+    if isinstance(value, bool):
+        return value
+    value = str(value).strip().lower()
+    if value in ("true", "1", "on", "yes", "y"):
+        return True
+    if value in ("false", "0", "off", "no", "n"):
+        return False
+    error_msg = f"Cannot convert config parameter '{value}' to boolean"
+    logger.error(error_msg)
+    raise ValueError(error_msg)
 
 class Env:
-    """Registers and freezes environment variables"""
+    """Reads data from the environment"""
 
     # Captcha setup
     FLATHUNTER_2CAPTCHA_KEY = _read_env("FLATHUNTER_2CAPTCHA_KEY")
     FLATHUNTER_IMAGETYPERZ_TOKEN = _read_env("FLATHUNTER_IMAGETYPERZ_TOKEN")
+    FLATHUNTER_CAPMONSTER_KEY = _read_env("FLATHUNTER_CAPMONSTER_KEY")
     FLATHUNTER_HEADLESS_BROWSER = _read_env("FLATHUNTER_HEADLESS_BROWSER")
+    FLATHUNTER_IS24_COOKIE = _read_env("FLATHUNTER_IS24_COOKIE")
 
     # Generic Config
     FLATHUNTER_TARGET_URLS = _read_env("FLATHUNTER_TARGET_URLS")
     FLATHUNTER_DATABASE_LOCATION = _read_env("FLATHUNTER_DATABASE_LOCATION")
-    FLATHUNTER_GOOGLE_CLOUD_PROJECT_ID = _read_env("FLATHUNTER_GOOGLE_CLOUD_PROJECT_ID")
+    FLATHUNTER_GOOGLE_CLOUD_PROJECT_ID = _read_env(
+        "FLATHUNTER_GOOGLE_CLOUD_PROJECT_ID")
     FLATHUNTER_VERBOSE_LOG = _read_env("FLATHUNTER_VERBOSE_LOG")
-    FLATHUNTER_LOOP_PERIOD_SECONDS = _read_env("FLATHUNTER_LOOP_PERIOD_SECONDS")
+    FLATHUNTER_LOOP_PERIOD_SECONDS = _read_env(
+        "FLATHUNTER_LOOP_PERIOD_SECONDS")
+    FLATHUNTER_RANDOM_JITTER_ENABLED = _read_env("FLATHUNTER_RANDOM_JITTER_ENABLED")
     FLATHUNTER_LOOP_PAUSE_FROM = _read_env("FLATHUNTER_LOOP_PAUSE_FROM")
     FLATHUNTER_LOOP_PAUSE_TILL = _read_env("FLATHUNTER_LOOP_PAUSE_TILL")
     FLATHUNTER_MESSAGE_FORMAT = _read_env("FLATHUNTER_MESSAGE_FORMAT")
 
     # Website setup
-    FLATHUNTER_WEBSITE_SESSION_KEY = _read_env("FLATHUNTER_WEBSITE_SESSION_KEY")
+    FLATHUNTER_WEBSITE_SESSION_KEY = _read_env(
+        "FLATHUNTER_WEBSITE_SESSION_KEY")
     FLATHUNTER_WEBSITE_DOMAIN = _read_env("FLATHUNTER_WEBSITE_DOMAIN")
     FLATHUNTER_WEBSITE_BOT_NAME = _read_env("FLATHUNTER_WEBSITE_BOT_NAME")
 
     # Notification setup
     FLATHUNTER_NOTIFIERS = _read_env("FLATHUNTER_NOTIFIERS")
     FLATHUNTER_TELEGRAM_BOT_TOKEN = _read_env("FLATHUNTER_TELEGRAM_BOT_TOKEN")
-    FLATHUNTER_TELEGRAM_BOT_NOTIFY_WITH_IMAGES = _read_env("FLATHUNTER_TELEGRAM_BOT_NOTIFY_WITH_IMAGES")
-    FLATHUNTER_TELEGRAM_RECEIVER_IDS = _read_env("FLATHUNTER_TELEGRAM_RECEIVER_IDS")
-    FLATHUNTER_MATTERMOST_WEBHOOK_URL = _read_env("FLATHUNTER_MATTERMOST_WEBHOOK_URL")
+    FLATHUNTER_TELEGRAM_BOT_NOTIFY_WITH_IMAGES = \
+        _read_env("FLATHUNTER_TELEGRAM_BOT_NOTIFY_WITH_IMAGES")
+    FLATHUNTER_TELEGRAM_RECEIVER_IDS = _read_env(
+        "FLATHUNTER_TELEGRAM_RECEIVER_IDS")
+    FLATHUNTER_MATTERMOST_WEBHOOK_URL = _read_env(
+        "FLATHUNTER_MATTERMOST_WEBHOOK_URL")
     FLATHUNTER_SLACK_WEBHOOK_URL = _read_env("FLATHUNTER_SLACK_WEBHOOK_URL")
+    FLATHUNTER_APPRISE_NOTIFY_WITH_IMAGES = _read_env(
+        "FLATHUNTER_APPRISE_NOTIFY_WITH_IMAGES")
+    FLATHUNTER_APPRISE_IMAGE_LIMIT = _read_env(
+        "FLATHUNTER_APPRISE_IMAGE_LIMIT")
 
     # Filters
-    FLATHUNTER_FILTER_EXCLUDED_TITLES = _read_env("FLATHUNTER_FILTER_EXCLUDED_TITLES")
+    FLATHUNTER_FILTER_EXCLUDED_TITLES = _read_env(
+        "FLATHUNTER_FILTER_EXCLUDED_TITLES")
     FLATHUNTER_FILTER_MIN_PRICE = _read_env("FLATHUNTER_FILTER_MIN_PRICE")
     FLATHUNTER_FILTER_MAX_PRICE = _read_env("FLATHUNTER_FILTER_MAX_PRICE")
     FLATHUNTER_FILTER_MIN_SIZE = _read_env("FLATHUNTER_FILTER_MIN_SIZE")
     FLATHUNTER_FILTER_MAX_SIZE = _read_env("FLATHUNTER_FILTER_MAX_SIZE")
     FLATHUNTER_FILTER_MIN_ROOMS = _read_env("FLATHUNTER_FILTER_MIN_ROOMS")
     FLATHUNTER_FILTER_MAX_ROOMS = _read_env("FLATHUNTER_FILTER_MAX_ROOMS")
-    FLATHUNTER_FILTER_MAX_PRICE_PER_SQUARE = _read_env("FLATHUNTER_FILTER_MAX_PRICE_PER_SQUARE")
-
+    FLATHUNTER_FILTER_MAX_PRICE_PER_SQUARE = _read_env(
+        "FLATHUNTER_FILTER_MAX_PRICE_PER_SQUARE")
 
 def elide(string):
     """Obfuscate the value of a string for debug purposes"""
@@ -77,7 +108,7 @@ def elide(string):
         return None
     if len(string) < 6:
         return "x" * len(string)
-    blanks = "x" * (len(string) - 6)
+    blanks = "x" * (len(string)-6)
     return f"{string[0:3]}{blanks}{string[-3:]}"
 
 
@@ -109,14 +140,14 @@ Preis: {price}
     def init_searchers(self):
         """Initialize search plugins"""
         self.__searchers__ = [
-            CrawlImmobilienscout(self),
-            CrawlWgGesucht(self),
-            CrawlEbayKleinanzeigen(self),
-            CrawlImmowelt(self),
-            CrawlSubito(self),
-            CrawlImmobiliare(self),
-            CrawlIdealista(self),
-            CrawlMeineStadt(self),
+            Immobilienscout(self),
+            WgGesucht(self),
+            Kleinanzeigen(self),
+            Immowelt(self),
+            Subito(self),
+            Immobiliare(self),
+            Idealista(self),
+            VrmImmo(self)
         ]
 
     def check_deprecated(self):
@@ -127,23 +158,23 @@ Preis: {price}
                 logger.warning(
                     'Captcha configuration for "imagetypers" (captcha/imagetypers) has been '
                     'renamed to "imagetyperz". '
-                    "We found an outdated entry, which has to be renamed accordingly, in order "
-                    "to be detected again."
+                    'We found an outdated entry, which has to be renamed accordingly, in order '
+                    'to be detected again.'
                 )
             if captcha_config.get("driver_path") is not None:
                 logger.warning(
                     'Captcha configuration for "driver_path" (captcha/driver_path) is no longer '
-                    "required, as driver setup has been automated."
+                    'required, as driver setup has been automated.'
                 )
 
     def get(self, key, value=None):
         """Emulate dictionary"""
         return self.config.get(key, value)
 
-    def _read_yaml_path(self, path, default_value=None):
+    def _read_yaml_path(self, path, default_value):
         """Resolve a dotted variable path in nested dictionaries"""
         config = self.config
-        parts = path.split(".")
+        parts = path.split('.')
         while len(parts) > 1 and config is not None:
             config = config.get(parts[0], {})
             parts = parts[1:]
@@ -174,66 +205,70 @@ Preis: {price}
 
     def get_captcha_checkbox(self) -> bool:
         """Check if captcha checkbox support is needed"""
-        return self._read_yaml_path("captcha.checkbox", False)
+        return self._read_yaml_path('captcha.checkbox', False)
 
     def get_captcha_afterlogin_string(self):
         """Check if afterlogin string should be presented"""
-        return self._read_yaml_path("captcha.afterlogin_string", "")
+        return self._read_yaml_path('captcha.afterlogin_string', '')
 
     def database_location(self):
         """Return the location of the database folder"""
-        config_database_location = self._read_yaml_path("database_location")
+        config_database_location = self._read_yaml_path('database_location', None)
         if config_database_location is not None:
             return config_database_location
         return os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + "/..")
 
-    def target_urls(self):
+    def target_urls(self) -> List[str]:
         """List of target URLs for crawling"""
-        return self._read_yaml_path("urls", [])
+        return self._read_yaml_path('urls', [])
 
     def verbose_logging(self):
         """Return true if logging should be verbose"""
-        return self._read_yaml_path("verbose") is not None
+        return self._read_yaml_path('verbose', None) is not None
 
     def loop_is_active(self):
         """Return true if flathunter should be crawling in a loop"""
-        return self._read_yaml_path("loop.active", False)
+        return self._read_yaml_path('loop.active', False)
 
     def loop_period_seconds(self):
         """Number of seconds to wait between crawls when looping"""
-        return self._read_yaml_path("loop.sleeping_time", 60 * 10)
+        return self._read_yaml_path('loop.sleeping_time', 60 * 10)
+
+    def random_jitter_enabled(self):
+        """Whether a random delay should be added to loop sleeping time, defaults to true"""
+        return self._read_yaml_path('loop.random_jitter', True)
 
     def loop_pause_from(self):
         """Start time of loop pause"""
-        return self._read_yaml_path("loop.pause.from", "00:00")
+        return self._read_yaml_path('loop.pause.from', "00:00")
 
     def loop_pause_till(self):
         """End time of loop pause"""
-        return self._read_yaml_path("loop.pause.till", "00:00")
+        return self._read_yaml_path('loop.pause.till', "00:00")
 
     def has_website_config(self):
         """True if the flathunter website configuration is present"""
-        return "website" in self.config
+        return 'website' in self.config
 
     def website_session_key(self):
         """Secret session key for the flathunter website"""
-        return self._read_yaml_path("website.session_key", None)
+        return self._read_yaml_path('website.session_key', None)
 
     def website_domain(self):
         """Domain that the flathunter website is hosted at"""
-        return self._read_yaml_path("website.domain", None)
+        return self._read_yaml_path('website.domain', None)
 
     def website_bot_name(self):
         """Name of the telegram bot used by the flathunter website to send messages"""
-        return self._read_yaml_path("website.bot_name", None)
+        return self._read_yaml_path('website.bot_name', None)
 
     def google_cloud_project_id(self):
         """Google Cloud project ID for App Engine / Cloud Run deployments"""
-        return self._read_yaml_path("google_cloud_project_id", None)
+        return self._read_yaml_path('google_cloud_project_id', None)
 
     def message_format(self):
         """Format of the message to send in user notifications"""
-        config_format = self._read_yaml_path("message", None)
+        config_format = self._read_yaml_path('message', None)
         if config_format is not None:
             return config_format
         return self.DEFAULT_MESSAGE_FORMAT
@@ -242,42 +277,57 @@ Preis: {price}
         """Preferred maximum price per square meter"""
         return self._read_yaml_path("telegram.preferred_max_pps", None)
 
-    def notifiers(self):
+    def notifiers(self) -> List[str]:
         """List of currently-active notifiers"""
-        return self._read_yaml_path("notifiers", [])
+        return self._read_yaml_path('notifiers', [])
 
     def telegram_bot_token(self) -> Optional[str]:
         """API Token to authenticate to the Telegram bot"""
-        return self._read_yaml_path("telegram.bot_token", None)
+        return self._read_yaml_path('telegram.bot_token', None)
 
     def telegram_notify_with_images(self) -> bool:
         """True if images should be sent along with notifications"""
-        flag = str(self._read_yaml_path("telegram.notify_with_images", "false"))
-        return flag.lower() == "true"
+        flag = str(self._read_yaml_path(
+            "telegram.notify_with_images", 'false'))
+        return flag.lower() == 'true'
 
     def telegram_receiver_ids(self):
         """Static list of receiver IDs for notification messages"""
-        return self._read_yaml_path("telegram.receiver_ids") or []
+        return self._read_yaml_path('telegram.receiver_ids', [])
 
     def mattermost_webhook_url(self):
         """Webhook for sending Mattermost messages"""
-        return self._read_yaml_path("mattermost.webhook_url", None)
+        return self._read_yaml_path('mattermost.webhook_url', None)
 
     def slack_webhook_url(self):
         """Webhook for sending Slack messages"""
-        return self._read_yaml_path("slack.webhook_url", "")
+        return self._read_yaml_path('slack.webhook_url', "")
 
-    def apprise_urls(self):
+    def apprise_urls(self) -> List[str]:
         """Notification URLs for Apprise"""
-        return self._read_yaml_path("apprise", [])
+        return self._read_yaml_path('apprise', [])
+
+    def apprise_notify_with_images(self) -> bool:
+        """True if images should be sent along with notifications"""
+        flag = str(self._read_yaml_path(
+            "apprise_notify_with_images", 'false'))
+        return flag.lower() == 'true'
+
+    def apprise_image_limit(self) -> Optional[int]:
+        """How many images should be sent along with Apprise notifications"""
+        return self._read_yaml_path('apprise_image_limit', None)
 
     def _get_imagetyperz_token(self):
         """API Token for Imagetyperz"""
         return self._read_yaml_path("captcha.imagetyperz.token", "")
 
-    def get_twocaptcha_key(self):
+    def get_twocaptcha_key(self) -> str:
         """API Token for 2captcha"""
         return self._read_yaml_path("captcha.2captcha.api_key", "")
+
+    def get_capmonster_key(self) -> str:
+        """API Token for Capmonster"""
+        return self._read_yaml_path("captcha.capmonster.api_key", "")
 
     def _get_captcha_solver(self) -> Optional[CaptchaSolver]:
         """Get configured captcha solver"""
@@ -288,6 +338,10 @@ Preis: {price}
         twocaptcha_api_key = self.get_twocaptcha_key()
         if twocaptcha_api_key:
             return TwoCaptchaSolver(twocaptcha_api_key)
+
+        capmonster_api_key = self.get_capmonster_key()
+        if capmonster_api_key:
+            return CapmonsterSolver(capmonster_api_key)
 
         return None
 
@@ -300,7 +354,7 @@ Preis: {price}
 
     def captcha_driver_arguments(self):
         """The list of driver arguments for Selenium / Webdriver"""
-        return self._read_yaml_path("captcha.driver_arguments", [])
+        return self._read_yaml_path('captcha.driver_arguments', [])
 
     def use_proxy(self):
         """Check if proxy is configured"""
@@ -347,49 +401,51 @@ Preis: {price}
         """Return the configured maximum price per square meter"""
         return self._get_filter_config("max_price_per_square")
 
+    def immoscout_cookie(self):
+        """Return the precalculated immoscout cookie"""
+        return self._read_yaml_path('immoscout_cookie', None)
+
     def __repr__(self):
-        return json.dumps(
-            {
-                "captcha_enabled": self.captcha_enabled(),
-                "captcha_driver_arguments": self.captcha_driver_arguments(),
-                "captcha_solver": type(self._get_captcha_solver()).__name__,
-                "imagetyperz_token": elide(self._get_imagetyperz_token()),
-                "twocaptcha_key": elide(self.get_twocaptcha_key()),
-                "mattermost_webhook_url": self.mattermost_webhook_url(),
-                "notifiers": self.notifiers(),
-                "slack_webhook_url": self.slack_webhook_url(),
-                "telegram_receiver_ids": self.telegram_receiver_ids(),
-                "telegram_bot_token": elide(self.telegram_bot_token()),
-                "target_urls": self.target_urls(),
-                "use_proxy": self.use_proxy(),
-            }
-        )
+        return json.dumps({
+            "captcha_enabled": self.captcha_enabled(),
+            "captcha_driver_arguments": self.captcha_driver_arguments(),
+            "captcha_solver": type(self._get_captcha_solver()).__name__,
+            "imagetyperz_token": elide(self._get_imagetyperz_token()),
+            "twocaptcha_key": elide(self.get_twocaptcha_key()),
+            "mattermost_webhook_url": self.mattermost_webhook_url(),
+            "notifiers": self.notifiers(),
+            "slack_webhook_url": self.slack_webhook_url(),
+            "telegram_receiver_ids": self.telegram_receiver_ids(),
+            "telegram_bot_token": elide(self.telegram_bot_token()),
+            "target_urls": self.target_urls(),
+            "use_proxy": self.use_proxy(),
+        })
 
 
 class CaptchaEnvironmentConfig(YamlConfig):
     """Mixin to add environment-variable captcha support to config object"""
 
     def _get_imagetyperz_token(self):
-        if Env.FLATHUNTER_IMAGETYPERZ_TOKEN is not None:
-            return Env.FLATHUNTER_IMAGETYPERZ_TOKEN
-        return super()._get_imagetyperz_token()  # pylint: disable=no-member
+        return Env.FLATHUNTER_IMAGETYPERZ_TOKEN() or super()._get_imagetyperz_token()  # pylint: disable=no-member
 
-    def get_twocaptcha_key(self):
+    def get_twocaptcha_key(self) -> str:
         """Return the currently configured 2captcha API key"""
-        if Env.FLATHUNTER_2CAPTCHA_KEY is not None:
-            return Env.FLATHUNTER_2CAPTCHA_KEY
-        return super().get_twocaptcha_key()  # pylint: disable=no-member
+        return Env.FLATHUNTER_2CAPTCHA_KEY() or super().get_twocaptcha_key()  # pylint: disable=no-member
+
+    def get_capmonster_key(self) -> str:
+        """Return the currently configured Capmonster API key"""
+        return Env.FLATHUNTER_CAPMONSTER_KEY() or super().get_capmonster_key()
 
     def captcha_driver_arguments(self):
         """The list of driver arguments for Selenium / Webdriver"""
-        if Env.FLATHUNTER_HEADLESS_BROWSER is not None:
+        if Env.FLATHUNTER_HEADLESS_BROWSER() is not None:
             return [
                 "--no-sandbox",
                 "--headless",
                 "--disable-gpu",
                 "--remote-debugging-port=9222",
                 "--disable-dev-shm-usage",
-                "--window-size=1024,768",
+                "--window-size=1024,768"
             ]
         return super().captcha_driver_arguments()  # pylint: disable=no-member
 
@@ -400,8 +456,9 @@ class Config(CaptchaEnvironmentConfig):  # pylint: disable=too-many-public-metho
     """
 
     def __init__(self, filename=None):
-        if filename is None and Env.FLATHUNTER_TARGET_URLS is None:
-            raise ConfigException("Config file loaction must be specified, or FLATHUNTER_TARGET_URLS must be set")
+        if filename is None and Env.FLATHUNTER_TARGET_URLS() is None:
+            raise ConfigException(
+                "Config file loaction must be specified, or FLATHUNTER_TARGET_URLS must be set")
         if filename is not None:
             logger.info("Using config path %s", filename)
             if not os.path.exists(filename):
@@ -414,136 +471,158 @@ class Config(CaptchaEnvironmentConfig):  # pylint: disable=too-many-public-metho
 
     def database_location(self):
         """Return the location of the database folder"""
-        if Env.FLATHUNTER_DATABASE_LOCATION is not None:
-            return Env.FLATHUNTER_DATABASE_LOCATION
-        return super().database_location()
+        return Env.FLATHUNTER_DATABASE_LOCATION() or super().database_location()
 
     def target_urls(self):
-        if Env.FLATHUNTER_TARGET_URLS is not None:
-            return Env.FLATHUNTER_TARGET_URLS.split(";")
+        env_urls = Env.FLATHUNTER_TARGET_URLS()
+        if env_urls is not None:
+            return env_urls.split(';')
         return super().target_urls()
 
     def verbose_logging(self):
-        if Env.FLATHUNTER_VERBOSE_LOG is not None:
+        if Env.FLATHUNTER_VERBOSE_LOG() is not None:
             return True
         return super().verbose_logging()
 
     def loop_is_active(self):
-        if Env.FLATHUNTER_LOOP_PERIOD_SECONDS is not None:
+        if Env.FLATHUNTER_LOOP_PERIOD_SECONDS() is not None:
             return True
         return super().loop_is_active()
 
     def loop_period_seconds(self):
-        if Env.FLATHUNTER_LOOP_PERIOD_SECONDS is not None:
-            return int(Env.FLATHUNTER_LOOP_PERIOD_SECONDS)
+        env_seconds = Env.FLATHUNTER_LOOP_PERIOD_SECONDS()
+        if env_seconds is not None:
+            return int(env_seconds)
         return super().loop_period_seconds()
 
+    def random_jitter_enabled(self):
+        env_jitter = Env.FLATHUNTER_RANDOM_JITTER_ENABLED()
+        if env_jitter is not None:
+            return _to_bool(env_jitter)
+        return _to_bool(super().random_jitter_enabled())
+
     def loop_pause_from(self):
-        if Env.FLATHUNTER_LOOP_PAUSE_FROM is not None:
-            return str(Env.FLATHUNTER_LOOP_PAUSE_FROM)
+        env_pause = Env.FLATHUNTER_LOOP_PAUSE_FROM()
+        if env_pause is not None:
+            return str(env_pause)
         return super().loop_pause_from()
 
     def loop_pause_till(self):
-        if Env.FLATHUNTER_LOOP_PAUSE_TILL is not None:
-            return str(Env.FLATHUNTER_LOOP_PAUSE_TILL)
+        env_until = Env.FLATHUNTER_LOOP_PAUSE_TILL()
+        if env_until is not None:
+            return str(env_until)
         return super().loop_pause_till()
 
     def has_website_config(self):
-        if Env.FLATHUNTER_WEBSITE_SESSION_KEY is not None:
+        if Env.FLATHUNTER_WEBSITE_SESSION_KEY() is not None:
             return True
         return super().has_website_config()
 
     def website_session_key(self):
-        if Env.FLATHUNTER_WEBSITE_SESSION_KEY is not None:
-            return Env.FLATHUNTER_WEBSITE_SESSION_KEY
-        return super().website_session_key()
+        return Env.FLATHUNTER_WEBSITE_SESSION_KEY() or super().website_session_key()
 
     def website_domain(self):
-        if Env.FLATHUNTER_WEBSITE_DOMAIN is not None:
-            return Env.FLATHUNTER_WEBSITE_DOMAIN
-        return super().website_domain()
+        return Env.FLATHUNTER_WEBSITE_DOMAIN() or super().website_domain()
 
     def website_bot_name(self):
-        if Env.FLATHUNTER_WEBSITE_BOT_NAME is not None:
-            return Env.FLATHUNTER_WEBSITE_BOT_NAME
-        return super().website_bot_name()
+        return Env.FLATHUNTER_WEBSITE_BOT_NAME() or super().website_bot_name()
 
     def google_cloud_project_id(self):
-        if Env.FLATHUNTER_GOOGLE_CLOUD_PROJECT_ID is not None:
-            return Env.FLATHUNTER_GOOGLE_CLOUD_PROJECT_ID
-        return super().google_cloud_project_id()
+        return Env.FLATHUNTER_GOOGLE_CLOUD_PROJECT_ID() or super().google_cloud_project_id()
 
     def message_format(self):
-        if Env.FLATHUNTER_MESSAGE_FORMAT is not None:
-            return "\n".join(Env.FLATHUNTER_MESSAGE_FORMAT.split("#CR#"))
+        env_message_format = Env.FLATHUNTER_MESSAGE_FORMAT()
+        if env_message_format is not None:
+            return '\n'.join(env_message_format.split('#CR#'))
         return super().message_format()
 
     def notifiers(self):
-        if Env.FLATHUNTER_NOTIFIERS is not None:
-            return Env.FLATHUNTER_NOTIFIERS.split(",")
+        env_notifiers = Env.FLATHUNTER_NOTIFIERS()
+        if env_notifiers is not None:
+            return env_notifiers.split(",")
         return super().notifiers()
 
     def telegram_bot_token(self) -> Optional[str]:
-        if Env.FLATHUNTER_TELEGRAM_BOT_TOKEN is not None:
-            return Env.FLATHUNTER_TELEGRAM_BOT_TOKEN
-        return super().telegram_bot_token()
+        return Env.FLATHUNTER_TELEGRAM_BOT_TOKEN() or super().telegram_bot_token()
 
     def telegram_notify_with_images(self) -> bool:
-        if Env.FLATHUNTER_TELEGRAM_BOT_NOTIFY_WITH_IMAGES is not None:
-            return str(Env.FLATHUNTER_TELEGRAM_BOT_NOTIFY_WITH_IMAGES) == "true"
+        env_bot_images = Env.FLATHUNTER_TELEGRAM_BOT_NOTIFY_WITH_IMAGES()
+        if env_bot_images is not None:
+            return str(env_bot_images) == 'true'
         return super().telegram_notify_with_images()
 
     def telegram_receiver_ids(self):
-        if Env.FLATHUNTER_TELEGRAM_RECEIVER_IDS is not None:
-            return [int(x) for x in Env.FLATHUNTER_TELEGRAM_RECEIVER_IDS.split(",")]
+        env_receiver_ids = Env.FLATHUNTER_TELEGRAM_RECEIVER_IDS()
+        if env_receiver_ids is not None:
+            return [int(x) for x in env_receiver_ids.split(",")]
         return super().telegram_receiver_ids()
 
     def mattermost_webhook_url(self):
-        if Env.FLATHUNTER_MATTERMOST_WEBHOOK_URL is not None:
-            return Env.FLATHUNTER_MATTERMOST_WEBHOOK_URL
-        return super().mattermost_webhook_url()
+        return Env.FLATHUNTER_MATTERMOST_WEBHOOK_URL() or super().mattermost_webhook_url()
 
     def slack_webhook_url(self):
-        if Env.FLATHUNTER_SLACK_WEBHOOK_URL is not None:
-            return Env.FLATHUNTER_SLACK_WEBHOOK_URL
+        if Env.FLATHUNTER_SLACK_WEBHOOK_URL() is not None:
+            return Env.FLATHUNTER_SLACK_WEBHOOK_URL()
         return super().slack_webhook_url()
 
+    def apprise_notify_with_images(self) -> bool:
+        if Env.FLATHUNTER_APPRISE_NOTIFY_WITH_IMAGES() is not None:
+            return str(Env.FLATHUNTER_APPRISE_NOTIFY_WITH_IMAGES()) == 'true'
+        return super().apprise_notify_with_images()
+
+    def apprise_image_limit(self) -> Optional[int]:
+        env_limit = Env.FLATHUNTER_APPRISE_IMAGE_LIMIT()
+        if env_limit is not None:
+            return int(env_limit)
+        return super().apprise_image_limit()
+
     def excluded_titles(self):
-        if Env.FLATHUNTER_FILTER_EXCLUDED_TITLES is not None:
-            return Env.FLATHUNTER_FILTER_EXCLUDED_TITLES.split(";")
+        env_filter = Env.FLATHUNTER_FILTER_EXCLUDED_TITLES()
+        if env_filter is not None:
+            return env_filter.split(";")
         return super().excluded_titles()
 
     def min_price(self):
-        if Env.FLATHUNTER_FILTER_MIN_PRICE is not None:
-            return int(Env.FLATHUNTER_FILTER_MIN_PRICE)
+        env_price = Env.FLATHUNTER_FILTER_MIN_PRICE()
+        if env_price is not None:
+            return int(env_price)
         return super().min_price()
 
     def max_price(self):
-        if Env.FLATHUNTER_FILTER_MAX_PRICE is not None:
-            return int(Env.FLATHUNTER_FILTER_MAX_PRICE)
+        env_price = Env.FLATHUNTER_FILTER_MAX_PRICE()
+        if env_price is not None:
+            return int(env_price)
         return super().max_price()
 
     def min_size(self):
-        if Env.FLATHUNTER_FILTER_MIN_SIZE is not None:
-            return int(Env.FLATHUNTER_FILTER_MIN_SIZE)
+        env_size = Env.FLATHUNTER_FILTER_MIN_SIZE()
+        if env_size is not None:
+            return int(env_size)
         return super().min_size()
 
     def max_size(self):
-        if Env.FLATHUNTER_FILTER_MAX_SIZE is not None:
-            return int(Env.FLATHUNTER_FILTER_MAX_SIZE)
+        env_size = Env.FLATHUNTER_FILTER_MAX_SIZE()
+        if env_size is not None:
+            return int(env_size)
         return super().max_size()
 
     def min_rooms(self):
-        if Env.FLATHUNTER_FILTER_MIN_ROOMS is not None:
-            return int(Env.FLATHUNTER_FILTER_MIN_ROOMS)
+        env_rooms = Env.FLATHUNTER_FILTER_MIN_ROOMS()
+        if env_rooms is not None:
+            return int(env_rooms)
         return super().min_rooms()
 
     def max_rooms(self):
-        if Env.FLATHUNTER_FILTER_MAX_ROOMS is not None:
-            return int(Env.FLATHUNTER_FILTER_MAX_ROOMS)
+        env_rooms = Env.FLATHUNTER_FILTER_MAX_ROOMS()
+        if env_rooms is not None:
+            return int(env_rooms)
         return super().max_rooms()
 
     def max_price_per_square(self):
-        if Env.FLATHUNTER_FILTER_MAX_PRICE_PER_SQUARE is not None:
-            return float(Env.FLATHUNTER_FILTER_MAX_PRICE_PER_SQUARE)
+        env_price = Env.FLATHUNTER_FILTER_MAX_PRICE_PER_SQUARE()
+        if env_price is not None:
+            return float(env_price)
         return super().max_price_per_square()
+
+    def immoscout_cookie(self):
+        return Env.FLATHUNTER_IS24_COOKIE() or super().immoscout_cookie()

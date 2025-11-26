@@ -239,26 +239,24 @@ def configure_captcha(urls: List[str], config: YamlConfig) -> Optional[Dict[str,
         "and solve the Captcha that shows up on the ImmoScout site.\n"
     )
     print("You WILL NEED TO INSTALL google-chrome / chromium to solve Captchas\n")
-    print(
-        "We recommend using 2captcha (https://2captcha.com/) as your captcha-solving\n"
-        "service. You will need an account there with some credit on it.\n"
-        "IMPORTANT NOTICE: Buying captcha credit does not guarantee that Flathunter will be\n"
-        "able to bypass the bot detection on the ImmoScout site - pay at your own risk!!\n"
-    )
-    print(
-        "Once you have an account and have paid, enter the API Key here (or hit Enter\n"
-        "to skip Captcha configuration, but be aware that ImmoScout scraping will fail...)\n"
-    )
-    if config.get_twocaptcha_key() is not None:
-        api_key = prompt("Enter 2Captcha API Key: ", default=config.get_twocaptcha_key())
+    print("We recommend using Capmonster (https://capmonster.cloud/) as your captcha-solving\n"
+    "service. You will need an account there with some credit on it.\n"
+    "IMPORTANT NOTICE: Buying captcha credit does not guarantee that Flathunter will be\n"
+    "able to bypass the bot detection on the ImmoScout site - pay at your own risk!!\n")
+    print("Once you have an account and have paid, enter the API Key here (or hit Enter\n"
+    "to skip Captcha configuration, but be aware that ImmoScout scraping will fail...)\n")
+    if config.get_capmonster_key() is not None:
+        api_key = prompt("Enter Capmonster API Key: ", default=config.get_capmonster_key())
     else:
-        api_key = prompt("Enter 2Captcha API Key: ")
+        api_key = prompt("Enter Capmonster API Key: ")
 
     if len(api_key) == 0:
         return None
     return {
         "captcha": {
-            "2captcha": {"api_key": api_key},
+            "capmonster": {
+                "api_key": api_key
+            },
             "driver_arguments": [
                 "--no-sandbox",
                 "--headless",

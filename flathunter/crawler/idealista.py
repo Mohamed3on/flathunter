@@ -4,7 +4,7 @@ import re
 from flathunter.logging import logger
 from flathunter.abstract_crawler import Crawler
 
-class CrawlIdealista(Crawler):
+class Idealista(Crawler):
     """Implementation of Crawler interface for Idealista"""
 
     URL_PATTERN = re.compile(r'https://www\.idealista\.it')
@@ -22,11 +22,11 @@ class CrawlIdealista(Crawler):
         return self.get_soup_from_url(search_url)
 
     # pylint: disable=too-many-locals
-    def extract_data(self, soup):
+    def extract_data(self, raw_data):
         """Extracts all exposes from a provided Soup object"""
         entries = []
 
-        findings = soup.find_all('article', {"class": "item"})
+        findings = raw_data.find_all('article', {"class": "item"})
 
         base_url = 'https://www.idealista.it'
         for row in findings:

@@ -187,6 +187,7 @@ class SenderTelegram(Processor, Notifier):
             pps_string = f"<i>{rounded_pps}</i>"
 
         return self.config.message_format().format(
+            crawler=expose.get('crawler', 'N/A'),
             title=expose.get('title', 'N/A'),
             rooms=expose.get('rooms', 'N/A'),
             size=expose.get('size', 'N/A'),
