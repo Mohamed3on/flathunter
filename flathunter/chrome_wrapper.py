@@ -67,14 +67,16 @@ def get_chrome_driver(driver_arguments):
     chrome_version = get_chrome_version()
     chrome_options.add_argument("--headless=new")
     chrome_options.set_capability('goog:loggingPrefs', {'performance': 'ALL'})
-    # Use manually installed chromedriver to avoid version mismatch issues
+    # Use platform-specific paths
     browser_path = None
+    driver_path = None
     if platform == "darwin":
         browser_path = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+        driver_path = "/tmp/chromedriver-mac-arm64/chromedriver"
     driver = uc.Chrome(
         version_main=chrome_version,
         options=chrome_options,
-        driver_executable_path="/tmp/chromedriver-mac-arm64/chromedriver",
+        driver_executable_path=driver_path,
         browser_executable_path=browser_path
     ) # pylint: disable=no-member
 
