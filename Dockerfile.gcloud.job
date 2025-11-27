@@ -17,8 +17,10 @@ COPY . .
 
 # Upgrade pip, install pipenv
 RUN pip install --upgrade pip
+RUN pip install pipenv
 
-# Generate requirements.txt and install dependencies from there
+# Generate requirements.txt from Pipfile.lock and install dependencies
+RUN pipenv requirements > requirements.txt
 RUN pip install -r requirements.txt
 
 RUN python chrome_driver_install.py
