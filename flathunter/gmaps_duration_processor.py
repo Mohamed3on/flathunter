@@ -21,20 +21,24 @@ class GMapsDurationProcessor(Processor):
         """Calculate the durations for an expose"""
         if expose.get('address') is None:
             expose['durations'] = ''
+            expose['durations_passed'] = False
             return expose
-        expose['durations'] = self.get_formatted_durations(expose['address']).strip()
+        durations_str, any_passed = self.get_formatted_durations(expose['address'])
+        expose['durations'] = durations_str.strip()
+        expose['durations_passed'] = any_passed
         return expose
 
     def get_formatted_durations(self, address):
-        """Return a formatted list of GoogleMaps durations"""
+        """Return a formatted list of GoogleMaps durations and whether any passed limits"""
         out = ""
-        for duration in self.config.get('durations', []):
-            if 'destination' not in duration or 'name' not in duration:
+        any_passed = False
+        for dest_config in self.config.get('durations', []):
+            if 'destination' not in dest_config or 'name' not in dest_config:
                 continue
 
-            dest = duration.get('destination')
-            name = duration.get('name')
-            for mode in duration.get('modes', []):
+            dest = dest_config.get('destination')
+            name = dest_config.get('name')
+            for mode in dest_config.get('modes', []):
                 if not ('gm_id' in mode and 'title' in mode and 'key' in self.config.get('google_maps_api', {})):
                     continue
 
@@ -45,12 +49,15 @@ class GMapsDurationProcessor(Processor):
 
                 if limit is not None and duration_minutes is not None and 0 < duration_minutes <= limit:
                     format_style = "b"
+                    emoji = "✅"
+                    any_passed = True
                 else:
                     format_style = "i"
+                    emoji = "❌"
 
-                out += f"> {name} ({title}): <{format_style}>{duration}</{format_style}>\n"
+                out += f"> {name} ({title}): {emoji} <{format_style}>{duration}</{format_style}>\n"
 
-        return out.strip()
+        return out.strip(), any_passed
 
 
     def duration_to_minutes(self, duration_text):

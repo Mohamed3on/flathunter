@@ -33,12 +33,32 @@ class SenderTelegram(Processor, Notifier):
 
     def process_expose(self, expose):
         """Send a message to a user describing the expose"""
+        # Check if we should skip this expose
+        pps_ok = self.__is_pps_acceptable(expose)
+        durations_ok = expose.get('durations_passed', True)  # Default True if no durations configured
+
+        if not pps_ok and not durations_ok:
+            logger.info("Skipping expose '%s': PPS and durations both exceed limits", expose.get('title'))
+            return expose
+
         self.__broadcast(
             receivers=self.receiver_ids,
             message=self.__get_text_message(expose),
             images=self.__get_images(expose),
         )
         return expose
+
+    def __is_pps_acceptable(self, expose):
+        """Check if the price per square meter is acceptable"""
+        size = ExposeHelper.get_size(expose)
+        price = ExposeHelper.get_price(expose)
+        preferred_max_pps = self.config.telegram_preferred_max_pps()
+
+        if not preferred_max_pps or not size or not price:
+            return True  # Can't evaluate, assume acceptable
+
+        pps = price / size
+        return pps <= preferred_max_pps
 
     def __broadcast(self,
                     receivers: List[int],
@@ -187,10 +207,10 @@ class SenderTelegram(Processor, Notifier):
 
         if rounded_pps is None:
             pps_string = "N/A"
-        elif preferred_max_pps and pps < preferred_max_pps:
-            pps_string = f"<b>{rounded_pps}</b>"
+        elif preferred_max_pps and pps <= preferred_max_pps:
+            pps_string = f"✅ <b>{rounded_pps}</b>"
         else:
-            pps_string = f"<i>{rounded_pps}</i>"
+            pps_string = f"❌ <i>{rounded_pps}</i>"
 
         return self.config.message_format().format(
             crawler=expose.get('crawler', 'N/A'),
