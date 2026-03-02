@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 
 from flathunter.crawler.kleinanzeigen import Kleinanzeigen
 from flathunter.crawler.immobilienscout import Immobilienscout
+from flathunter.crawler.livinginberlin import LivingInBerlin
 from flathunter.crawler.wggesucht import WgGesucht
 from flathunter.logging import logger
 from flathunter.exceptions import ConfigException
@@ -80,6 +81,7 @@ Preis: {price}
             Immobilienscout(self),
             WgGesucht(self),
             Kleinanzeigen(self),
+            LivingInBerlin(self),
         ]
 
     def get(self, key, value=None):
