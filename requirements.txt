@@ -1,0 +1,12 @@
+apprise
+backoff
+beautifulsoup4
+cachetools
+firebase-admin
+google-cloud-firestore
+lxml
+pydantic
+pytz
+pyyaml
+requests
+python-dotenv
