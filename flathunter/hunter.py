@@ -4,7 +4,6 @@ from itertools import chain
 
 import requests
 
-from flathunter.captcha.captcha_solver import CaptchaUnsolvableError
 from flathunter.config import YamlConfig
 from flathunter.exceptions import ConfigException
 from flathunter.filter import Filter
@@ -27,11 +26,11 @@ class Hunter:
         def try_crawl(searcher, url, max_pages):
             try:
                 return searcher.crawl(url, max_pages)
-            except CaptchaUnsolvableError:
-                logger.info("Error while scraping url %s: the captcha was unsolvable", url)
-                return []
             except requests.exceptions.RequestException:
                 logger.info("Error while scraping url %s:\n%s", url, traceback.format_exc())
+                return []
+            except Exception:
+                logger.warning("Unexpected error while scraping url %s:\n%s", url, traceback.format_exc())
                 return []
 
         return chain(
@@ -52,7 +51,9 @@ class Hunter:
             .apply_filter(filter_set)
             .resolve_addresses()
             .calculate_durations()
+            .score_with_gemini()
             .send_messages()
+            .auto_contact(self.id_watch)
             .build()
         )
 

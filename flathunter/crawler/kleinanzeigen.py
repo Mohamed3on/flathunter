@@ -1,42 +1,35 @@
-"""Expose crawler for Kleinanzeigen"""
+"""Expose crawler for Kleinanzeigen — pure requests (no Selenium)"""
 import re
 import datetime
 
-from bs4 import Tag
+import requests
 
-from flathunter.webdriver_crawler import WebdriverCrawler
+from flathunter.abstract_crawler import Crawler
 from flathunter.logging import logger
 
-class Kleinanzeigen(WebdriverCrawler):
-    """Implementation of Crawler interface for Kleinanzeigen"""
+from bs4 import BeautifulSoup
+
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                  "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Accept-Language": "de-DE,de;q=0.9,en;q=0.8",
+}
+
+
+class Kleinanzeigen(Crawler):
+    """Implementation of Crawler interface for Kleinanzeigen (no Selenium)"""
 
     URL_PATTERN = re.compile(r'https://www\.kleinanzeigen\.de')
-    MONTHS = {
-        "Januar": "01",
-        "Februar": "02",
-        "März": "03",
-        "April": "04",
-        "Mai": "05",
-        "Juni": "06",
-        "Juli": "07",
-        "August": "08",
-        "September": "09",
-        "Oktober": "10",
-        "November": "11",
-        "Dezember": "12"
-    }
+
+    def get_page(self, search_url, driver=None, page_no=None) -> BeautifulSoup:
+        """Fetch search page via requests"""
+        resp = requests.get(search_url, headers=HEADERS, timeout=20)
+        if resp.status_code != 200:
+            logger.warning("Kleinanzeigen: got %d for %s", resp.status_code, search_url)
+        return BeautifulSoup(resp.content, 'lxml')
 
     def get_expose_details(self, expose):
-        soup = self.get_page(expose['url'], self.get_driver())
-        if soup is None:
-            return expose
-        for detail in soup.find_all('li', {"class": "addetailslist--detail"}):
-            if re.match(r'Verfügbar ab', detail.text):
-                date_string = re.match(r'(\w+) (\d{4})', detail.text)
-                if date_string is not None:
-                    expose['from'] = "01." + self.MONTHS[date_string[1]] + "." + date_string[2]
-        if 'from' not in expose:
-            expose['from'] = datetime.datetime.now().strftime('%02d.%02m.%Y')
+        expose['from'] = datetime.datetime.now().strftime('%02d.%m.%Y')
         return expose
 
     # pylint: disable=too-many-locals
@@ -58,7 +51,6 @@ class Kleinanzeigen(WebdriverCrawler):
             if title_elem.get("href"):
                 url = title_elem.get("href")
             else:
-                # If there is no title element, just continue since we can't provide an URL
                 continue
 
             try:
@@ -110,17 +102,5 @@ class Kleinanzeigen(WebdriverCrawler):
         return entries
 
     def load_address(self, url):
-        """Extract address from expose itself"""
-        expose_soup = self.get_page(url)
-        if expose_soup is None:
-            return ""
-        street_raw = ""
-        street_el = expose_soup.find(id="street-address")
-        if isinstance(street_el, Tag):
-            street_raw = street_el.text
-        address_raw = ""
-        address_el = expose_soup.find(id="viewad-locality")
-        if isinstance(address_el, Tag):
-            address_raw = address_el.text
-
-        return address_raw.strip().replace("\n", "") + " " + street_raw.strip()
+        """Extract address from expose — not available without JS, return empty"""
+        return ""

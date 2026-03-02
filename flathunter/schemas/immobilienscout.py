@@ -79,7 +79,7 @@ class ImmoscoutQuery(BaseModel):
     petsallowedtypes: list[str] | None = Field(title="Haustiere", default=None)
     price: str | None = Field(title="Kalt/Warmmiete in €", default=None)
     pricetype: Literal["calculatedtotalrent", "rentpermonth"] = Field(
-        description="Warm or net rent", default="rentpermonth"
+        description="Warm or net rent", default="calculatedtotalrent"
     )
     realestatetype: Literal["apartmentbuy", "apartmentrent", "housebuy", "houserent"] = Field(
         description="Real estate and contract type"

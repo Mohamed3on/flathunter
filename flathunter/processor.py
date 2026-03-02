@@ -6,10 +6,24 @@ from flathunter.default_processors import AddressResolver
 from flathunter.default_processors import Filter
 from flathunter.default_processors import LambdaProcessor
 from flathunter.default_processors import CrawlExposeDetails
-from flathunter.notifiers import SenderMattermost, SenderTelegram, SenderApprise, SenderSlack
+from flathunter.notifiers import SenderTelegram, SenderApprise
 from flathunter.gmaps_duration_processor import GMapsDurationProcessor
-from flathunter.idmaintainer import SaveAllExposesProcessor
+from flathunter.contactors.auto_contact import AutoContactProcessor
+from flathunter.contactors.score_processor import GeminiScoreProcessor
 from flathunter.abstract_processor import Processor
+
+class SaveAllExposesProcessor(Processor):
+    """Processor that saves all exposes to the database"""
+
+    def __init__(self, config, id_watch):
+        self.config = config
+        self.id_watch = id_watch
+
+    def process_expose(self, expose):
+        """Save a single expose"""
+        self.id_watch.save_expose(expose)
+        return expose
+
 
 class ProcessorChainBuilder:
     """Builder pattern for building chains of processors"""
@@ -24,12 +38,8 @@ class ProcessorChainBuilder:
         notifiers = self.config.notifiers()
         if 'telegram' in notifiers:
             self.processors.append(SenderTelegram(self.config, receivers=receivers))
-        if 'mattermost' in notifiers:
-            self.processors.append(SenderMattermost(self.config))
         if 'apprise' in notifiers:
             self.processors.append(SenderApprise(self.config))
-        if 'slack' in notifiers:
-            self.processors.append(SenderSlack(self.config))
         return self
 
     def resolve_addresses(self):
@@ -63,6 +73,18 @@ class ProcessorChainBuilder:
     def save_all_exposes(self, id_watch):
         """Add processor that saves all exposes to disk"""
         self.processors.append(SaveAllExposesProcessor(self.config, id_watch))
+        return self
+
+    def score_with_gemini(self):
+        """Add processor that scores listings with Gemini, if enabled"""
+        if self.config.auto_contact_gemini_api_key():
+            self.processors.append(GeminiScoreProcessor(self.config))
+        return self
+
+    def auto_contact(self, id_watch):
+        """Add processor that auto-contacts landlords, if enabled"""
+        if self.config.auto_contact_enabled():
+            self.processors.append(AutoContactProcessor(self.config, id_watch))
         return self
 
     def build(self):

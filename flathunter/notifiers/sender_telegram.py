@@ -212,7 +212,7 @@ class SenderTelegram(Processor, Notifier):
         else:
             pps_string = f"❌ <i>{rounded_pps}</i>"
 
-        return self.config.message_format().format(
+        base_msg = self.config.message_format().format(
             crawler=expose.get('crawler', 'N/A'),
             title=expose.get('title', 'N/A'),
             rooms=expose.get('rooms', 'N/A'),
@@ -223,3 +223,33 @@ class SenderTelegram(Processor, Notifier):
             durations=expose.get('durations', 'N/A'),
             pps=pps_string or 'N/A',
         ).strip()
+
+        # Append Gemini analysis if available
+        score = expose.get('gemini_score')
+        if score is not None:
+            if score >= 8:
+                emoji = "🟢"
+            elif score >= 5:
+                emoji = "🟡"
+            else:
+                emoji = "🔴"
+
+            lines = [f"\n\n{emoji} <b>AI Score: {score}/10</b>"]
+            pros = expose.get('gemini_pros', [])
+            cons = expose.get('gemini_cons', [])
+            summary = expose.get('gemini_summary', '')
+            if pros:
+                lines.append(f"✅ {' · '.join(pros)}")
+            if cons:
+                lines.append(f"❌ {' · '.join(cons)}")
+            if summary:
+                lines.append(f"💬 {summary}")
+
+            # For Kleinanzeigen, include the message in notification since we can't auto-send
+            gemini_msg = expose.get('gemini_message')
+            if gemini_msg and expose.get('crawler') == 'Kleinanzeigen':
+                lines.append(f"\n📝 <b>Message to copy:</b>\n<code>{gemini_msg}</code>")
+
+            base_msg += '\n'.join(lines)
+
+        return base_msg

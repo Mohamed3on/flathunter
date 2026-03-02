@@ -1,9 +1,0 @@
-name: 'Python Linting'
-description: 'Run pylint'
-author: 'Arthur Taylor <arthur@codders.de> | codders'
-branding:
-  color: 'orange'
-  icon: 'check-circle'
-runs:
-  using: 'docker'
-  image: 'Dockerfile'

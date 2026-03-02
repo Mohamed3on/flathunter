@@ -23,11 +23,4 @@ def parse():
                         default=default_config_path,
                         help=f'Config file to use. If not set, try to use "{default_config_path}"'
                         )
-    parser.add_argument('--heartbeat', '-hb',
-                        action='store',
-                        default=None,
-                        help=('Set the interval time to receive heartbeat messages to check'
-                              'that the bot is alive. Accepted strings are "hour", "day", "week".'
-                              'Defaults to None.')
-                        )
     return parser.parse_known_args()[0]

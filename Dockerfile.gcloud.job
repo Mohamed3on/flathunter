@@ -1,28 +1,16 @@
-FROM python:3.11
+FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
-ARG PIP_NO_CACHE_DIR=1
 
-# Install Google Chrome
-RUN apt-get update && apt-get install -y gnupg wget
-RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/google-chrome.gpg
-RUN echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list
-RUN apt-get -y update
-RUN apt-get install -y google-chrome-stable
+RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
 
-# Copy files
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
 WORKDIR /usr/src/app
+COPY requirements.txt .
+RUN uv pip install --system -r requirements.txt
+
 COPY . .
-
-# Upgrade pip, install pipenv
-RUN pip install --upgrade pip
-RUN pip install pipenv
-
-# Generate requirements.txt from Pipfile.lock and install dependencies
-RUN pipenv requirements > requirements.txt
-RUN pip install -r requirements.txt
-
-RUN python chrome_driver_install.py
 
 CMD python cloud_job.py --config /config/config.yaml

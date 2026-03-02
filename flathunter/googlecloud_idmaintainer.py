@@ -99,6 +99,21 @@ class GoogleCloudIdMaintainer:
                 return None
             return doc_as_dict['timestamp']
 
+    def is_contacted(self, expose_id, crawler):
+        """Returns true if a landlord has already been contacted for this expose"""
+        doc = self.database.collection('contacted').document(
+            f"{expose_id}_{crawler}").get()
+        return doc.exists
+
+    def mark_contacted(self, expose_id, crawler):
+        """Mark an expose as contacted in the database"""
+        self.database.collection('contacted').document(
+            f"{expose_id}_{crawler}").set({
+                'id': expose_id,
+                'crawler': crawler,
+                'contacted_at': pytz.utc.localize(datetime.datetime.now()),
+            })
+
     def update_last_run_time(self):
         """Updates the time of the last run in the database"""
         time = datetime.datetime.now()
