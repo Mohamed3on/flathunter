@@ -1,5 +1,4 @@
 """Module with implementations of standard expose filters"""
-from functools import reduce
 import re
 from abc import ABC, ABCMeta
 from typing import List, Any
@@ -178,23 +177,6 @@ class TitleFilter(AbstractFilter):
         return False, f"Title '{expose['title']}' matches filtered titles."
 
 
-class PPSFilter(AbstractFilter):
-    """Exclude exposes above a given price per square"""
-
-    def __init__(self, max_pps):
-        self.max_pps = max_pps
-
-    def is_interesting(self, expose):
-        size = ExposeHelper.get_size(expose)
-        price = ExposeHelper.get_price(expose)
-        if size is None or price is None:
-            return True, ""
-        pps = price / size
-        if pps <= self.max_pps:
-            return True, ""
-        return False, f"Price per square {pps} is above max price per square {self.max_pps}."
-
-
 class FilterBuilder:
     """Construct a filter chain"""
 
@@ -216,7 +198,6 @@ class FilterBuilder:
         self._append_filter_if_not_empty(MaxSizeFilter, config.max_size())
         self._append_filter_if_not_empty(MinRoomsFilter, config.min_rooms())
         self._append_filter_if_not_empty(MaxRoomsFilter, config.max_rooms())
-        self._append_filter_if_not_empty(PPSFilter, config.max_price_per_square())
         return self
 
     def filter_already_seen(self, id_watch):

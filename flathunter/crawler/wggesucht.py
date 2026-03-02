@@ -1,6 +1,6 @@
 """Expose crawler for WgGesucht"""
 import re
-from typing import Optional, List, Dict, Any, Union
+from typing import Optional, List, Dict, Union
 
 import requests
 from bs4 import BeautifulSoup, Tag
@@ -160,6 +160,13 @@ def liste_attribute_filter(element: Union[Tag, str]) -> bool:
         'premium_user_extra_list' not in element.parent.attrs["class"]
 
 
+HTML_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                  "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Accept-Language": "de-DE,de;q=0.9,en;q=0.8",
+}
+
+
 class WgGesucht(Crawler):
     """Implementation of Crawler interface for WgGesucht"""
 
@@ -168,6 +175,32 @@ class WgGesucht(Crawler):
     def __init__(self, config):
         super().__init__(config)
         self.config = config
+
+    def get_expose_details(self, expose):
+        """Fetch description and photos from expose page"""
+        try:
+            resp = requests.get(expose.get('url', ''), headers=HTML_HEADERS, timeout=15)
+            if resp.status_code != 200:
+                return expose
+            soup = BeautifulSoup(resp.content, 'lxml')
+
+            desc_el = soup.find('div', id='ad_description_text')
+            if not desc_el:
+                desc_el = soup.find('div', class_='freitext')
+            if desc_el:
+                expose['detail_description'] = desc_el.get_text(separator="\n", strip=True)[:2000]
+
+            photos = []
+            for img in soup.select('img.sp-image, div.wgg_gallery img'):
+                src = img.get('data-src') or img.get('src', '')
+                if src and src.startswith('http'):
+                    photos.append(src)
+            photos = list(dict.fromkeys(photos))
+            expose['detail_photos'] = photos
+            expose['detail_total_photos'] = len(photos)
+        except Exception as exc:
+            logger.debug("Failed to fetch details for %s: %s", expose.get('url'), exc)
+        return expose
 
     # pylint: disable=too-many-locals
     def extract_data(self, raw_data: BeautifulSoup) -> List[Dict]:
@@ -202,36 +235,17 @@ class WgGesucht(Crawler):
             return None
         return ' '.join(a_element.text.strip().split())
 
-    def get_soup_from_url(
-            self,
-            url: str,
-            driver: Optional[Any] = None,
-            checkbox: bool = False,
-            afterlogin_string: Optional[str] = None) -> BeautifulSoup:
-        """
-        Creates a Soup object from the HTML at the provided URL
+    def get_soup_from_url(self, url: str) -> BeautifulSoup:
+        """Creates a Soup object from the HTML at the provided URL.
+        Loads the page twice so WG-Gesucht filters are applied correctly."""
+        if self.config.use_proxy():
+            return self.get_soup_with_proxy(url)
 
-        Overwrites the method inherited from abstract_crawler. This is
-        necessary as we need to reload the page once for all filters to
-        be applied correctly on wg-gesucht.
-        """
         sess = requests.session()
-        # First page load to set filters; response is discarded
         sess.get(url, headers=self.HEADERS)
-        # Second page load
         resp = sess.get(url, headers=self.HEADERS)
 
         if resp.status_code not in (200, 405):
             logger.error("Got response (%i): %s",
                          resp.status_code, resp.content)
-        if self.config.use_proxy():
-            return self.get_soup_with_proxy(url)
-        if driver is not None:
-            driver.get(url)
-            if re.search("initGeetest", driver.page_source):
-                self.resolve_geetest(driver)
-            elif re.search("g-recaptcha", driver.page_source):
-                self.resolve_recaptcha(
-                    driver, checkbox, afterlogin_string or "")
-            return BeautifulSoup(driver.page_source, 'lxml')
         return BeautifulSoup(resp.content, 'lxml')

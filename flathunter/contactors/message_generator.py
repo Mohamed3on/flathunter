@@ -1,12 +1,9 @@
-"""Score listings and generate contact messages using Gemini 3 Flash Preview"""
+"""Score listings and generate contact messages using Gemini"""
 import json
-import re
-import base64
 from typing import Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import requests
-from bs4 import BeautifulSoup
 
 from flathunter.logging import logger
 
@@ -25,150 +22,7 @@ RESPONSE_SCHEMA = {
 }
 
 
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                  "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Accept-Language": "de-DE,de;q=0.9,en;q=0.8",
-}
-
-MAX_PHOTOS = 3
-
-
-def _fetch_image_as_base64(url: str) -> Optional[dict]:
-    """Download an image and return as inline_data part for Gemini"""
-    try:
-        resp = requests.get(url, headers=HEADERS, timeout=10)
-        if resp.status_code != 200:
-            return None
-        content_type = resp.headers.get('content-type', 'image/jpeg')
-        if 'image' not in content_type:
-            content_type = 'image/jpeg'
-        return {
-            "inline_data": {
-                "mime_type": content_type,
-                "data": base64.b64encode(resp.content).decode('utf-8')
-            }
-        }
-    except Exception:
-        return None
-
-
-IMMOSCOUT_API_HEADERS = {
-    "Connection": "keep-alive",
-    "Content-Type": "application/json",
-    "Accept": "application/json",
-    "User-Agent": "ImmoScout_27.3_26.0_._",
-}
-
-
-def _fetch_detail_page(expose: dict) -> dict:
-    """Fetch listing details: description + photo URLs.
-    Uses mobile API for ImmoScout, HTML scraping for others."""
-    url = expose.get('url', '')
-    crawler = expose.get('crawler', '').lower()
-    result = {'description': '', 'photo_urls': [], 'total_photos': 0}
-
-    try:
-        if 'immobilienscout' in crawler or 'immobilienscout24' in url:
-            result = _fetch_immoscout_detail(expose)
-        elif 'wg-gesucht' in crawler or 'wg-gesucht' in url:
-            result = _fetch_html_detail(expose, _parse_wggesucht)
-        elif 'kleinanzeigen' in crawler or 'kleinanzeigen' in url:
-            result = _fetch_html_detail(expose, _parse_kleinanzeigen)
-    except Exception as e:
-        logger.debug("Could not fetch detail page for %s: %s", url, e)
-
-    return result
-
-
-def _fetch_immoscout_detail(expose: dict) -> dict:
-    """Use ImmoScout mobile API for expose details — returns description + photos."""
-    expose_id = expose.get('id', '')
-    result = {'description': '', 'photo_urls': [], 'total_photos': 0}
-
-    resp = requests.get(
-        f"https://api.mobile.immobilienscout24.de/expose/{expose_id}",
-        headers=IMMOSCOUT_API_HEADERS, timeout=15)
-    if resp.status_code != 200:
-        return result
-
-    data = resp.json()
-    descriptions = []
-    photos = []
-
-    # Extract contact name
-    try:
-        agent_name = data.get('contact', {}).get('contactData', {}).get('agent', {}).get('name', '')
-        if agent_name:
-            result['contact_name'] = agent_name
-    except Exception:
-        pass
-
-    for section in data.get('sections', []):
-        stype = section.get('type')
-        if stype == 'TEXT_AREA':
-            title = section.get('title', '')
-            text = section.get('text', '')
-            if text:
-                descriptions.append(f"{title}: {text}" if title else text)
-        elif stype == 'MEDIA':
-            for media in section.get('media', []):
-                if media.get('type') == 'PICTURE':
-                    url = media.get('previewImageUrl') or media.get('fullImageUrl', '')
-                    if url:
-                        photos.append(url)
-
-    result['description'] = "\n\n".join(descriptions)[:3000]
-    result['photo_urls'] = photos
-    result['total_photos'] = len(photos)
-    return result
-
-
-def _fetch_html_detail(expose: dict, parser_fn) -> dict:
-    """Fetch HTML detail page and parse with platform-specific parser."""
-    result = {'description': '', 'photo_urls': [], 'total_photos': 0}
-    resp = requests.get(expose.get('url', ''), headers=HEADERS, timeout=15)
-    if resp.status_code != 200:
-        return result
-    soup = BeautifulSoup(resp.content, 'lxml')
-    return parser_fn(soup)
-
-
-def _parse_wggesucht(soup) -> dict:
-    result = {'description': '', 'photo_urls': [], 'total_photos': 0}
-    desc_el = soup.find('div', id='ad_description_text')
-    if not desc_el:
-        desc_el = soup.find('div', class_='freitext')
-    if desc_el:
-        result['description'] = desc_el.get_text(separator="\n", strip=True)[:2000]
-
-    photos = []
-    for img in soup.select('img.sp-image, div.wgg_gallery img'):
-        src = img.get('data-src') or img.get('src', '')
-        if src and src.startswith('http'):
-            photos.append(src)
-    result['photo_urls'] = list(dict.fromkeys(photos))
-    result['total_photos'] = len(result['photo_urls'])
-    return result
-
-
-def _parse_kleinanzeigen(soup) -> dict:
-    result = {'description': '', 'photo_urls': [], 'total_photos': 0}
-    desc_el = soup.find('p', id='viewad-description-text')
-    if desc_el:
-        result['description'] = desc_el.get_text(separator="\n", strip=True)[:2000]
-
-    photos = []
-    for img in soup.select('#viewad-image img, .galleryimage img'):
-        src = img.get('data-src') or img.get('src', '')
-        if src and src.startswith('http'):
-            photos.append(src)
-    result['photo_urls'] = list(dict.fromkeys(photos))
-    result['total_photos'] = len(result['photo_urls'])
-    return result
-
-
-def _build_listing_text(expose: dict, detail: dict) -> str:
+def _build_listing_text(expose: dict) -> str:
     lines = [
         f"Title: {expose.get('title', 'N/A')}",
         f"Price: {expose.get('price', 'N/A')}",
@@ -176,9 +30,9 @@ def _build_listing_text(expose: dict, detail: dict) -> str:
         f"Rooms: {expose.get('rooms', 'N/A')}",
         f"Address: {expose.get('address', 'N/A')}",
         f"Platform: {expose.get('crawler', 'N/A')}",
-        f"Photos in listing: {detail.get('total_photos', 0)}",
+        f"Photos in listing: {expose.get('detail_total_photos', 0)}",
     ]
-    contact_name = detail.get('contact_name', '')
+    contact_name = expose.get('detail_contact_name', '')
     if contact_name:
         lines.append(f"Contact/Agent: {contact_name}")
     if expose.get('from'):
@@ -188,7 +42,7 @@ def _build_listing_text(expose: dict, detail: dict) -> str:
     if expose.get('durations'):
         lines.append(f"Commute: {expose['durations']}")
 
-    description = detail.get('description', '')
+    description = expose.get('detail_description', '')
     if description:
         lines.append(f"\nFull listing description:\n{description}")
     else:
@@ -198,16 +52,14 @@ def _build_listing_text(expose: dict, detail: dict) -> str:
 
 
 def score_listing(expose: dict, config) -> Optional[dict]:
-    """Score a listing with Gemini. Returns {score, pros, cons, summary, message}."""
+    """Score a listing with Gemini. Returns {score, pros, cons, summary, message}.
+    Expects expose to be enriched with detail_* fields by CrawlExposeDetails processor."""
     api_key = config.auto_contact_gemini_api_key()
     if not api_key:
         return None
 
     user_profile = config.auto_contact_user_profile() or ""
-
-    # Fetch detail page once — gets description + photo URLs
-    detail = _fetch_detail_page(expose)
-    listing_text = _build_listing_text(expose, detail)
+    listing_text = _build_listing_text(expose)
 
     prompt = f"""You are evaluating a rental apartment listing in Berlin, Germany for a tenant:
 {user_profile}
@@ -280,11 +132,12 @@ Respond with JSON: score, pros, cons, summary, message."""
         return None
 
 
-def score_listings_parallel(exposes: list, config, max_workers: int = 10) -> list:
-    """Score multiple listings in parallel. Returns exposes with gemini_* fields attached."""
+def score_listings_parallel(exposes: list, config, max_workers: int = 10) -> None:
+    """Score multiple listings in parallel. Mutates each expose dict in-place,
+    adding gemini_score, gemini_pros, gemini_cons, gemini_summary, gemini_message."""
     api_key = config.auto_contact_gemini_api_key()
     if not api_key:
-        return exposes
+        return
 
     def _score_one(expose):
         result = score_listing(expose, config)
@@ -294,14 +147,11 @@ def score_listings_parallel(exposes: list, config, max_workers: int = 10) -> lis
             expose['gemini_cons'] = result.get('cons', [])
             expose['gemini_summary'] = result.get('summary', '')
             expose['gemini_message'] = result.get('message')
-        return expose
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = {executor.submit(_score_one, e): i for i, e in enumerate(exposes)}
+        futures = [executor.submit(_score_one, e) for e in exposes]
         for future in as_completed(futures):
             try:
                 future.result()
             except Exception as e:
                 logger.error("Parallel scoring error: %s", e)
-
-    return exposes

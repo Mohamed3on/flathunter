@@ -3,13 +3,12 @@ import re
 import datetime
 
 import requests
+from bs4 import BeautifulSoup
 
 from flathunter.abstract_crawler import Crawler
 from flathunter.logging import logger
 
-from bs4 import BeautifulSoup
-
-HEADERS = {
+HTML_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
                   "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Accept-Language": "de-DE,de;q=0.9,en;q=0.8",
@@ -21,15 +20,36 @@ class Kleinanzeigen(Crawler):
 
     URL_PATTERN = re.compile(r'https://www\.kleinanzeigen\.de')
 
-    def get_page(self, search_url, driver=None, page_no=None) -> BeautifulSoup:
+    def get_page(self, search_url, page_no=None) -> BeautifulSoup:
         """Fetch search page via requests"""
-        resp = requests.get(search_url, headers=HEADERS, timeout=20)
+        resp = requests.get(search_url, headers=HTML_HEADERS, timeout=20)
         if resp.status_code != 200:
             logger.warning("Kleinanzeigen: got %d for %s", resp.status_code, search_url)
         return BeautifulSoup(resp.content, 'lxml')
 
     def get_expose_details(self, expose):
+        """Fetch description and photos from expose page"""
         expose['from'] = datetime.datetime.now().strftime('%02d.%m.%Y')
+        try:
+            resp = requests.get(expose.get('url', ''), headers=HTML_HEADERS, timeout=15)
+            if resp.status_code != 200:
+                return expose
+            soup = BeautifulSoup(resp.content, 'lxml')
+
+            desc_el = soup.find('p', id='viewad-description-text')
+            if desc_el:
+                expose['detail_description'] = desc_el.get_text(separator="\n", strip=True)[:2000]
+
+            photos = []
+            for img in soup.select('#viewad-image img, .galleryimage img'):
+                src = img.get('data-src') or img.get('src', '')
+                if src and src.startswith('http'):
+                    photos.append(src)
+            photos = list(dict.fromkeys(photos))
+            expose['detail_photos'] = photos
+            expose['detail_total_photos'] = len(photos)
+        except Exception as exc:
+            logger.debug("Failed to fetch details for %s: %s", expose.get('url'), exc)
         return expose
 
     # pylint: disable=too-many-locals

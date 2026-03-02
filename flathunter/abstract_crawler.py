@@ -4,9 +4,6 @@ import re
 
 import backoff
 import requests
-# pylint: disable=unused-import
-import requests_random_user_agent
-
 from bs4 import BeautifulSoup
 
 from flathunter import proxies
@@ -124,5 +121,6 @@ class Crawler(ABC):
         return type(self).__name__
 
     def get_expose_details(self, expose):
-        """Loads additional details for an expose. Should be implemented in the subclass"""
+        """Enrich expose with detail_description, detail_photos, detail_total_photos,
+        and optionally detail_contact_name / warmmiete. Subclasses should override."""
         return expose

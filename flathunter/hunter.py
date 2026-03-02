@@ -51,6 +51,8 @@ class Hunter:
             .apply_filter(filter_set)
             .resolve_addresses()
             .calculate_durations()
+            .crawl_expose_details()
+            .filter_quality()
             .score_with_gemini()
             .send_messages()
             .auto_contact(self.id_watch)

@@ -3,14 +3,16 @@ from functools import reduce
 from typing import List
 
 from flathunter.default_processors import AddressResolver
-from flathunter.default_processors import Filter
+from flathunter.default_processors import FilterProcessor
 from flathunter.default_processors import LambdaProcessor
 from flathunter.default_processors import CrawlExposeDetails
+from flathunter.filter import ExposeHelper
 from flathunter.notifiers import SenderTelegram, SenderApprise
 from flathunter.gmaps_duration_processor import GMapsDurationProcessor
 from flathunter.contactors.auto_contact import AutoContactProcessor
 from flathunter.contactors.score_processor import GeminiScoreProcessor
 from flathunter.abstract_processor import Processor
+from flathunter.logging import logger
 
 class SaveAllExposesProcessor(Processor):
     """Processor that saves all exposes to the database"""
@@ -23,6 +25,29 @@ class SaveAllExposesProcessor(Processor):
         """Save a single expose"""
         self.id_watch.save_expose(expose)
         return expose
+
+
+class QualityFilter(Processor):
+    """Drop exposes that fail duration limits or exceed PPS threshold.
+    Should run after calculate_durations and crawl_expose_details."""
+
+    def __init__(self, config):
+        self.config = config
+        self.max_pps = config.telegram_preferred_max_pps()
+
+    def process_exposes(self, exposes):
+        for expose in exposes:
+            if not expose.get('durations_passed', True):
+                logger.info("Dropping '%s': durations exceed limits", expose.get('title'))
+                continue
+            if self.max_pps:
+                price = ExposeHelper.get_price(expose)
+                size = ExposeHelper.get_size(expose)
+                if price and size and price / size > self.max_pps:
+                    logger.info("Dropping '%s': PPS %.1f exceeds %.1f",
+                                expose.get('title'), price / size, self.max_pps)
+                    continue
+            yield expose
 
 
 class ProcessorChainBuilder:
@@ -60,6 +85,11 @@ class ProcessorChainBuilder:
         self.processors.append(CrawlExposeDetails(self.config))
         return self
 
+    def filter_quality(self):
+        """Drop exposes that fail duration limits or exceed PPS threshold"""
+        self.processors.append(QualityFilter(self.config))
+        return self
+
     def map(self, func):
         """Add processor that applies a lambda to exposes"""
         self.processors.append(LambdaProcessor(self.config, func))
@@ -67,7 +97,7 @@ class ProcessorChainBuilder:
 
     def apply_filter(self, filter_set):
         """Add processor that applies a filter to expose sequence"""
-        self.processors.append(Filter(self.config, filter_set))
+        self.processors.append(FilterProcessor(self.config, filter_set))
         return self
 
     def save_all_exposes(self, id_watch):

@@ -2,11 +2,10 @@
 import random
 from time import sleep
 
-import requests
-
 from flathunter.abstract_processor import Processor
 from flathunter.contactors.wggesucht import WgGesuchtContactor
 from flathunter.contactors.immoscout import ImmoscoutContactor
+from flathunter.notifiers import send_telegram_alert
 from flathunter.logging import logger
 
 CONTACTOR_MAP = {
@@ -36,23 +35,12 @@ class AutoContactProcessor(Processor):
             self._contactors[crawler_name] = cls(self.config)
         return self._contactors[crawler_name]
 
-    def _send_telegram_alert(self, text: str):
-        """Send an alert to the user via Telegram"""
-        bot_token = self.config.telegram_bot_token()
-        receiver_ids = self.config.telegram_receiver_ids()
-        if not bot_token or not receiver_ids:
-            return
-        url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-        for chat_id in receiver_ids:
-            try:
-                requests.post(url, data={
-                    "chat_id": chat_id,
-                    "text": text,
-                    "parse_mode": "HTML",
-                    "disable_web_page_preview": "true",
-                }, timeout=10)
-            except Exception:
-                pass
+    def _alert(self, text: str):
+        send_telegram_alert(
+            self.config.telegram_bot_token(),
+            self.config.telegram_receiver_ids(),
+            text,
+        )
 
     def process_expose(self, expose):
         expose_id = expose.get('id')
@@ -91,7 +79,7 @@ class AutoContactProcessor(Processor):
         if contactor.send_message(expose, message):
             self.id_watch.mark_contacted(expose_id, crawler)
             logger.info("Contacted landlord for expose %s on %s", expose_id, crawler)
-            self._send_telegram_alert(
+            self._alert(
                 f"✅ <b>Auto-contact sent</b>\n"
                 f"{expose.get('title', 'N/A')}\n"
                 f"Score: {expose.get('gemini_score', '?')}/10\n"
@@ -102,14 +90,14 @@ class AutoContactProcessor(Processor):
             # Check for cookie expiry (ImmoScout specific)
             if hasattr(contactor, 'cookies_expired') and contactor.cookies_expired:
                 if not self._alerted_cookies_expired:
-                    self._send_telegram_alert(
+                    self._alert(
                         "🚨 <b>ImmoScout session cookies expired!</b>\n"
                         "Auto-contact is broken. Update immoscout_session_cookies "
                         "in config.yaml with fresh cookies from your browser."
                     )
                     self._alerted_cookies_expired = True
             else:
-                self._send_telegram_alert(
+                self._alert(
                     f"❌ <b>Auto-contact failed</b>\n"
                     f"{crawler} expose {expose_id}\n"
                     f"{expose.get('url', '')}"

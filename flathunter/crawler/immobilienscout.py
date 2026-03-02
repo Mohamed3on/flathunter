@@ -129,6 +129,54 @@ class Immobilienscout(Crawler):
         logger.debug('Number of entries found: %d', len(entries))
         return entries
 
+    DETAIL_API_URL = "https://api.mobile.immobilienscout24.de/expose/{}"
+
+    def get_expose_details(self, expose):
+        """Fetch description, photos, contact name, and Warmmiete from detail API"""
+        expose_id = expose.get('id', '')
+        try:
+            resp = requests.get(
+                self.DETAIL_API_URL.format(expose_id),
+                headers=self.HEADERS, timeout=15)
+            if resp.status_code != 200:
+                return expose
+            data = resp.json()
+        except Exception as exc:
+            logger.debug("Failed to fetch details for %s: %s", expose_id, exc)
+            return expose
+
+        descriptions = []
+        photos = []
+        for section in data.get('sections', []):
+            stype = section.get('type')
+            if stype == 'TEXT_AREA':
+                title = section.get('title', '')
+                text = section.get('text', '')
+                if text:
+                    descriptions.append(f"{title}: {text}" if title else text)
+            elif stype == 'MEDIA':
+                for media in section.get('media', []):
+                    if media.get('type') == 'PICTURE':
+                        url = media.get('previewImageUrl') or media.get('fullImageUrl', '')
+                        if url:
+                            photos.append(url)
+            elif stype == 'COST_CHECK':
+                total_rent = section.get('totalRent')
+                if total_rent is not None:
+                    expose['warmmiete'] = total_rent
+
+        try:
+            agent_name = data.get('contact', {}).get('contactData', {}).get('agent', {}).get('name', '')
+            if agent_name:
+                expose['detail_contact_name'] = agent_name
+        except Exception:
+            pass
+
+        expose['detail_description'] = "\n\n".join(descriptions)[:3000]
+        expose['detail_photos'] = photos
+        expose['detail_total_photos'] = len(photos)
+        return expose
+
     def get_results(self, search_url: str, max_pages: int | None = None) -> list:
         """Fetches the exposes from the ImmoScout mobile API, starting at the provided URL"""
         query = self.get_immoscout_query(search_url)
@@ -157,4 +205,5 @@ class Immobilienscout(Crawler):
             listings = self.fetch_api_data(api_url, page_no).json()
             cur_entries = self.extract_data(listings)
             entries.extend(cur_entries)
+
         return entries

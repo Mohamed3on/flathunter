@@ -8,7 +8,6 @@ from dotenv import load_dotenv
 from flathunter.crawler.kleinanzeigen import Kleinanzeigen
 from flathunter.crawler.immobilienscout import Immobilienscout
 from flathunter.crawler.wggesucht import WgGesucht
-from flathunter.filter import Filter
 from flathunter.logging import logger
 from flathunter.exceptions import ConfigException
 
@@ -74,8 +73,6 @@ class Env:
     FLATHUNTER_FILTER_MAX_SIZE = _read_env("FLATHUNTER_FILTER_MAX_SIZE")
     FLATHUNTER_FILTER_MIN_ROOMS = _read_env("FLATHUNTER_FILTER_MIN_ROOMS")
     FLATHUNTER_FILTER_MAX_ROOMS = _read_env("FLATHUNTER_FILTER_MAX_ROOMS")
-    FLATHUNTER_FILTER_MAX_PRICE_PER_SQUARE = _read_env(
-        "FLATHUNTER_FILTER_MAX_PRICE_PER_SQUARE")
 
 
 class YamlConfig:
@@ -135,16 +132,6 @@ Preis: {price}
     def searchers(self):
         """Get the list of search plugins"""
         return self.__searchers__
-
-    def get_filter(self):
-        """Read the configured filter"""
-        builder = Filter.builder()
-        builder.read_config(self)
-        return builder.build()
-
-    def captcha_enabled(self):
-        """Captcha is not supported in cloud-only mode"""
-        return False
 
     def target_urls(self) -> List[str]:
         """List of target URLs for crawling"""
@@ -261,10 +248,6 @@ Preis: {price}
     def max_rooms(self):
         """Return the configured maximum number of rooms"""
         return self._get_filter_config("max_rooms")
-
-    def max_price_per_square(self):
-        """Return the configured maximum price per square meter"""
-        return self._get_filter_config("max_price_per_square")
 
     def immoscout_cookie(self):
         """Return the precalculated immoscout cookie"""
@@ -459,12 +442,6 @@ class Config(YamlConfig):
         if env_rooms is not None:
             return int(env_rooms)
         return super().max_rooms()
-
-    def max_price_per_square(self):
-        env_price = Env.FLATHUNTER_FILTER_MAX_PRICE_PER_SQUARE()
-        if env_price is not None:
-            return float(env_price)
-        return super().max_price_per_square()
 
     def immoscout_cookie(self):
         return Env.FLATHUNTER_IS24_COOKIE() or super().immoscout_cookie()
