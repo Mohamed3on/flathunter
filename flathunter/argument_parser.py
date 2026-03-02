@@ -23,4 +23,4 @@ def parse():
                         default=default_config_path,
                         help=f'Config file to use. If not set, try to use "{default_config_path}"'
                         )
-    return parser.parse_known_args()[0]
+    return parser.parse_args()

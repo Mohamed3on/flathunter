@@ -4,7 +4,6 @@ from typing import List
 
 from flathunter.default_processors import AddressResolver
 from flathunter.default_processors import FilterProcessor
-from flathunter.default_processors import LambdaProcessor
 from flathunter.default_processors import CrawlExposeDetails
 from flathunter.filter import ExposeHelper
 from flathunter.notifiers import SenderTelegram, SenderApprise
@@ -88,11 +87,6 @@ class ProcessorChainBuilder:
     def filter_quality(self):
         """Drop exposes that fail duration limits or exceed PPS threshold"""
         self.processors.append(QualityFilter(self.config))
-        return self
-
-    def map(self, func):
-        """Add processor that applies a lambda to exposes"""
-        self.processors.append(LambdaProcessor(self.config, func))
         return self
 
     def apply_filter(self, filter_set):

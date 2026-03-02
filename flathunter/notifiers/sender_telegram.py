@@ -6,7 +6,6 @@ from flathunter.filter import ExposeHelper
 
 import requests
 
-from flathunter.abstract_notifier import Notifier
 from flathunter.abstract_processor import Processor
 from flathunter.config import YamlConfig
 from flathunter.exceptions import BotBlockedException
@@ -15,7 +14,7 @@ from flathunter.logging import logger
 from flathunter.utils.list import chunk_list
 
 
-class SenderTelegram(Processor, Notifier):
+class SenderTelegram(Processor):
     """Expose processor that sends Telegram messages"""
 
     def __init__(self, config: YamlConfig, receivers=None):
@@ -58,14 +57,6 @@ class SenderTelegram(Processor, Notifier):
 
             if self.__notify_with_images and images:
                 self.__send_images(chat_id=receiver, msg=msg, images=images)
-
-    def notify(self, message: str):
-        """
-        Send messages to each of the receivers in receiver_ids
-        :param message: a message that should be sent to users
-        :return: None
-        """
-        self.__broadcast(self.receiver_ids, message, None)
 
     def __send_text(self, chat_id: int, message: str) -> Dict:
         """

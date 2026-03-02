@@ -1,6 +1,6 @@
 """Wrap configuration options as an object"""
 import os
-from typing import Optional, Dict, Any, List, Protocol
+from typing import Optional, Any, List
 
 import yaml
 from dotenv import load_dotenv
@@ -13,43 +13,18 @@ from flathunter.exceptions import ConfigException
 
 load_dotenv()
 
-class Readenv(Protocol):
-    """Type information for the read_env callback"""
-    @staticmethod
-    def __call__() -> Optional[str]: ...
-
-def _read_env(key: str, fallback: Optional[str] = None) -> Readenv:
+def _read_env(key: str, fallback: Optional[str] = None):
     """ read the given key from environment"""
     return lambda: os.environ.get(key, fallback)
 
-def _to_bool(value: Any) -> bool:
-    """Cast config parameters to booleans"""
-    if isinstance(value, bool):
-        return value
-    value = str(value).strip().lower()
-    if value in ("true", "1", "on", "yes", "y"):
-        return True
-    if value in ("false", "0", "off", "no", "n"):
-        return False
-    error_msg = f"Cannot convert config parameter '{value}' to boolean"
-    logger.error(error_msg)
-    raise ValueError(error_msg)
-
 class Env:
     """Reads data from the environment"""
-
-    FLATHUNTER_IS24_COOKIE = _read_env("FLATHUNTER_IS24_COOKIE")
 
     # Generic Config
     FLATHUNTER_TARGET_URLS = _read_env("FLATHUNTER_TARGET_URLS")
     FLATHUNTER_GOOGLE_CLOUD_PROJECT_ID = _read_env(
         "FLATHUNTER_GOOGLE_CLOUD_PROJECT_ID")
     FLATHUNTER_VERBOSE_LOG = _read_env("FLATHUNTER_VERBOSE_LOG")
-    FLATHUNTER_LOOP_PERIOD_SECONDS = _read_env(
-        "FLATHUNTER_LOOP_PERIOD_SECONDS")
-    FLATHUNTER_RANDOM_JITTER_ENABLED = _read_env("FLATHUNTER_RANDOM_JITTER_ENABLED")
-    FLATHUNTER_LOOP_PAUSE_FROM = _read_env("FLATHUNTER_LOOP_PAUSE_FROM")
-    FLATHUNTER_LOOP_PAUSE_TILL = _read_env("FLATHUNTER_LOOP_PAUSE_TILL")
     FLATHUNTER_MESSAGE_FORMAT = _read_env("FLATHUNTER_MESSAGE_FORMAT")
 
     # Notification setup
@@ -125,10 +100,6 @@ Preis: {price}
             return default_value
         return res
 
-    def set_searchers(self, searchers):
-        """Update the active search plugins"""
-        self.__searchers__ = searchers
-
     def searchers(self):
         """Get the list of search plugins"""
         return self.__searchers__
@@ -140,26 +111,6 @@ Preis: {price}
     def verbose_logging(self):
         """Return true if logging should be verbose"""
         return self._read_yaml_path('verbose', None) is not None
-
-    def loop_is_active(self):
-        """Return true if flathunter should be crawling in a loop"""
-        return self._read_yaml_path('loop.active', False)
-
-    def loop_period_seconds(self):
-        """Number of seconds to wait between crawls when looping"""
-        return self._read_yaml_path('loop.sleeping_time', 60 * 10)
-
-    def random_jitter_enabled(self):
-        """Whether a random delay should be added to loop sleeping time, defaults to true"""
-        return self._read_yaml_path('loop.random_jitter', True)
-
-    def loop_pause_from(self):
-        """Start time of loop pause"""
-        return self._read_yaml_path('loop.pause.from', "00:00")
-
-    def loop_pause_till(self):
-        """End time of loop pause"""
-        return self._read_yaml_path('loop.pause.till', "00:00")
 
     def google_cloud_project_id(self):
         """Google Cloud project ID for App Engine / Cloud Run deployments"""
@@ -194,10 +145,6 @@ Preis: {price}
         """Static list of receiver IDs for notification messages"""
         return self._read_yaml_path('telegram.receiver_ids', [])
 
-    def apprise_urls(self) -> List[str]:
-        """Notification URLs for Apprise"""
-        return self._read_yaml_path('apprise', [])
-
     def apprise_notify_with_images(self) -> bool:
         """True if images should be sent along with notifications"""
         flag = str(self._read_yaml_path(
@@ -208,21 +155,11 @@ Preis: {price}
         """How many images should be sent along with Apprise notifications"""
         return self._read_yaml_path('apprise_image_limit', None)
 
-    def use_proxy(self):
-        """Check if proxy is configured"""
-        return "use_proxy_list" in self.config and self.config["use_proxy_list"]
-
-    def set_keys(self, dict_keys: Dict[str, Any]):
-        """Update the config keys based on the content of the dictionary passed"""
-        self.config.update(dict_keys)
-
     def _get_filter_config(self, key: str) -> Optional[Any]:
         return (self.config.get("filters", {}) or {}).get(key, None)
 
     def excluded_titles(self):
         """Return the configured list of titles to exclude"""
-        if "excluded_titles" in self.config:
-            return self.config["excluded_titles"]
         return self._get_filter_config("excluded_titles") or []
 
     def min_price(self):
@@ -249,12 +186,8 @@ Preis: {price}
         """Return the configured maximum number of rooms"""
         return self._get_filter_config("max_rooms")
 
-    def immoscout_cookie(self):
-        """Return the precalculated immoscout cookie"""
-        return self._read_yaml_path('immoscout_cookie', None)
-
     def immoscout_session_cookies(self):
-        """Return the full ImmoScout session cookie string for Selenium auth"""
+        """Return the full ImmoScout session cookie string"""
         return self._read_yaml_path('immoscout_session_cookies', None)
 
     def twocaptcha_api_key(self):
@@ -330,35 +263,6 @@ class Config(YamlConfig):
         if Env.FLATHUNTER_VERBOSE_LOG() is not None:
             return True
         return super().verbose_logging()
-
-    def loop_is_active(self):
-        if Env.FLATHUNTER_LOOP_PERIOD_SECONDS() is not None:
-            return True
-        return super().loop_is_active()
-
-    def loop_period_seconds(self):
-        env_seconds = Env.FLATHUNTER_LOOP_PERIOD_SECONDS()
-        if env_seconds is not None:
-            return int(env_seconds)
-        return super().loop_period_seconds()
-
-    def random_jitter_enabled(self):
-        env_jitter = Env.FLATHUNTER_RANDOM_JITTER_ENABLED()
-        if env_jitter is not None:
-            return _to_bool(env_jitter)
-        return _to_bool(super().random_jitter_enabled())
-
-    def loop_pause_from(self):
-        env_pause = Env.FLATHUNTER_LOOP_PAUSE_FROM()
-        if env_pause is not None:
-            return str(env_pause)
-        return super().loop_pause_from()
-
-    def loop_pause_till(self):
-        env_until = Env.FLATHUNTER_LOOP_PAUSE_TILL()
-        if env_until is not None:
-            return str(env_until)
-        return super().loop_pause_till()
 
     def google_cloud_project_id(self):
         return Env.FLATHUNTER_GOOGLE_CLOUD_PROJECT_ID() or super().google_cloud_project_id()
@@ -442,6 +346,3 @@ class Config(YamlConfig):
         if env_rooms is not None:
             return int(env_rooms)
         return super().max_rooms()
-
-    def immoscout_cookie(self):
-        return Env.FLATHUNTER_IS24_COOKIE() or super().immoscout_cookie()

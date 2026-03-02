@@ -91,10 +91,12 @@ class GMapsDurationProcessor(Processor):
         base_url = self.config.get('google_maps_api', {}).get('url')
         gm_key = self.config.get('google_maps_api', {}).get('key')
 
+        if not base_url:
+            logger.error("No Google Maps API url configured")
+            return None
+
         if not gm_key and mode != self.GM_MODE_DRIVING:
-            logger.warning("No Google Maps API key configured and without using a mode "
-                                 "different from 'driving' is not allowed. "
-                                 "Downgrading to mode 'drinving' thus. ")
+            logger.warning("No Google Maps API key configured — downgrading to mode 'driving'")
             mode = 'driving'
             base_url = base_url.replace('&key={key}', '')
 

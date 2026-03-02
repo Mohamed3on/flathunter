@@ -238,9 +238,6 @@ class WgGesucht(Crawler):
     def get_soup_from_url(self, url: str) -> BeautifulSoup:
         """Creates a Soup object from the HTML at the provided URL.
         Loads the page twice so WG-Gesucht filters are applied correctly."""
-        if self.config.use_proxy():
-            return self.get_soup_with_proxy(url)
-
         sess = requests.session()
         sess.get(url, headers=self.HEADERS)
         resp = sess.get(url, headers=self.HEADERS)

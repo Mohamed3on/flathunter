@@ -6,9 +6,7 @@ import backoff
 import requests
 from bs4 import BeautifulSoup
 
-from flathunter import proxies
 from flathunter.logging import logger
-from flathunter.exceptions import ProxyException
 
 
 class Crawler(ABC):
@@ -43,51 +41,9 @@ class Crawler(ABC):
                           max_tries=3)
     def get_soup_from_url(self, url: str) -> BeautifulSoup:
         """Creates a Soup object from the HTML at the provided URL"""
-        if self.config.use_proxy():
-            return self.get_soup_with_proxy(url)
-
         resp = requests.get(url, headers=self.HEADERS, timeout=30)
         if resp.status_code not in (200, 405):
             logger.error("Got response (%i): %s", resp.status_code, resp.content)
-
-        return BeautifulSoup(resp.content, 'lxml')
-
-    def get_soup_with_proxy(self, url) -> BeautifulSoup:
-        """Will try proxies until it's possible to crawl and return a soup"""
-        resolved = False
-        resp = None
-
-        while not resolved:
-            proxies_list = proxies.get_proxies()
-            for proxy in proxies_list:
-                try:
-                    resp = requests.get(
-                        url,
-                        headers=self.HEADERS,
-                        proxies={"http": proxy, "https": proxy},
-                        timeout=(20, 0.1)
-                    )
-
-                    if resp.status_code != 200:
-                        logger.error("Got response (%i): %s",
-                                     resp.status_code, resp.content)
-                    else:
-                        resolved = True
-                        break
-
-                except requests.exceptions.ConnectionError:
-                    logger.error(
-                        "Connection failed for proxy %s. Trying new proxy...", proxy)
-                except requests.exceptions.Timeout:
-                    logger.error(
-                        "Connection timed out for proxy %s. Trying new proxy...", proxy
-                    )
-                except requests.exceptions.RequestException:
-                    logger.error("Some error occurred. Trying new proxy...")
-
-        if not resp:
-            raise ProxyException(
-                "An error occurred while fetching proxies or content")
 
         return BeautifulSoup(resp.content, 'lxml')
 

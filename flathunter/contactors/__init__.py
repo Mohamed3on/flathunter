@@ -12,7 +12,3 @@ class AbstractContactor(ABC):
     @abstractmethod
     def send_message(self, expose: dict, message: str) -> bool:
         """Send a message to the landlord for the given expose. Returns True on success."""
-
-    @abstractmethod
-    def is_logged_in(self) -> bool:
-        """Check if we have an active session."""

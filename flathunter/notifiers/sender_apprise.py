@@ -1,12 +1,11 @@
 """Functions and classes related to sending Apprise messages"""
 import apprise
 
-from flathunter.abstract_notifier import Notifier
 from flathunter.abstract_processor import Processor
 from flathunter.config import YamlConfig
 
 
-class SenderApprise(Processor, Notifier):
+class SenderApprise(Processor):
     """Expose processor that sends Apprise messages"""
 
     def __init__(self, config: YamlConfig):
@@ -38,18 +37,9 @@ class SenderApprise(Processor, Notifier):
             durations=expose.get('durations', 'N/A')
         ).strip()
         images = expose.get("images", [])[: self.__image_limit]
-        image = expose.get("image")
-        attach = (
-            (images if images else image)
-            if self.__notify_with_images
-            else None
-        )
+        attach = images if self.__notify_with_images and images else None
         self.__send_msg(message, title, attach)
         return expose
-
-    def notify(self, message: str):
-        """Send the given message to users"""
-        self.__send_msg(message=message, title=None, attach=None)
 
     def __send_msg(self, message, title, attach):
         """Send messages to each of the Apprise urls"""

@@ -59,14 +59,3 @@ class CrawlExposeDetails(Processor):
 
         return expose
 
-class LambdaProcessor(Processor):
-    """Processor to apply arbitrary logic to each expose"""
-
-    def __init__(self, config, func):
-        self.config = config
-        self.func = func
-
-    def process_expose(self, expose):
-        """Apply the lambda function to each expose"""
-        res = self.func(expose)
-        return res
