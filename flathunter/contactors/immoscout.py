@@ -20,6 +20,7 @@ class ImmoscoutContactor(AbstractContactor):
         self.first_name = details.get('first_name', '')
         self.last_name = details.get('last_name', '')
         self.email = details.get('email', '')
+        self.password = details.get('password', '')
         self.phone = details.get('phone', '')
         self.street = details.get('street', '')
         self.house_number = details.get('house_number', '')
@@ -27,6 +28,7 @@ class ImmoscoutContactor(AbstractContactor):
         self.city = details.get('city', '')
         self.config = config
         self._session = None
+        self._fresh_cookie_str = None
         self.cookies_expired = False
 
     # ── session management ──────────────────────────────────────────
@@ -42,16 +44,20 @@ class ImmoscoutContactor(AbstractContactor):
                 "Accept-Language": "en-US,en;q=0.9",
                 "Origin": "https://www.immobilienscout24.de",
             })
-            cookie_str = self.config.immoscout_session_cookies()
+            cookie_str = self._fresh_cookie_str or self.config.immoscout_session_cookies()
             if cookie_str:
-                for part in cookie_str.split(';'):
-                    part = part.strip()
-                    if '=' not in part:
-                        continue
-                    name, value = part.split('=', 1)
-                    self._session.cookies.set(name.strip(), value.strip(),
-                                              domain='.immobilienscout24.de')
+                self._load_cookies(cookie_str)
         return self._session
+
+    def _load_cookies(self, cookie_str: str) -> None:
+        """Parse a cookie string into the requests session."""
+        for part in cookie_str.split(';'):
+            part = part.strip()
+            if '=' not in part:
+                continue
+            name, value = part.split('=', 1)
+            self._session.cookies.set(name.strip(), value.strip(),
+                                      domain='.immobilienscout24.de')
 
     def is_logged_in(self) -> bool:
         return bool(self.config.immoscout_session_cookies())
@@ -155,11 +161,30 @@ class ImmoscoutContactor(AbstractContactor):
         logger.info("ImmoScout: WAF token refreshed via 2captcha")
         return True
 
+    # ── auto cookie refresh ─────────────────────────────────────────
+
+    def _try_refresh_cookies(self) -> bool:
+        """Attempt to refresh cookies via Playwright browser login."""
+        if not self.email or not self.password:
+            logger.error("ImmoScout: cannot auto-refresh — no password in config")
+            return False
+
+        from flathunter.immoscout_auth import refresh_immoscout_cookies
+        cookie_str = refresh_immoscout_cookies(self.email, self.password)
+        if not cookie_str:
+            return False
+
+        # Reset session with fresh cookies
+        self._fresh_cookie_str = cookie_str
+        self._session = None
+        self.cookies_expired = False
+        return True
+
     # ── nonce extraction with auto-refresh ──────────────────────────
 
-    def _extract_nonce(self, expose_id: str) -> str | None:
+    def _extract_nonce(self, expose_id: str, _retried: bool = False) -> str | None:
         """Fetch expose page and extract nonceToken.
-        Automatically solves AWS WAF challenges via 2captcha."""
+        Automatically solves AWS WAF challenges and refreshes cookies."""
         self.cookies_expired = False
         session = self._get_session()
         url = f"https://www.immobilienscout24.de/expose/{expose_id}"
@@ -177,22 +202,26 @@ class ImmoscoutContactor(AbstractContactor):
                     self.cookies_expired = True
                     return None
 
-            # ── auth redirect / session expired ──
+            # ── detect expired session ──
+            session_expired = False
             if resp.status_code in (401, 403) or (
                     resp.status_code in (301, 302)
                     and 'sso' in resp.headers.get('Location', '').lower()):
-                logger.error("ImmoScout: session expired (HTTP %d)", resp.status_code)
+                session_expired = True
+            elif resp.status_code == 200 and 'sso/login' in resp.text[:5000] and 'nonceToken' not in resp.text:
+                session_expired = True
+
+            if session_expired:
+                if not _retried:
+                    logger.info("ImmoScout: session expired, attempting auto-refresh")
+                    if self._try_refresh_cookies():
+                        return self._extract_nonce(expose_id, _retried=True)
+                logger.error("ImmoScout: session expired and auto-refresh failed")
                 self.cookies_expired = True
                 return None
 
             if resp.status_code != 200:
                 logger.error("ImmoScout: page fetch %d for %s", resp.status_code, expose_id)
-                return None
-
-            # ── login redirect in HTML ──
-            if 'sso/login' in resp.text[:5000] and 'nonceToken' not in resp.text:
-                logger.error("ImmoScout: session cookies expired (login redirect in page)")
-                self.cookies_expired = True
                 return None
 
             match = re.search(r'"nonceToken":\s*"([^"]+)"', resp.text)
@@ -208,9 +237,11 @@ class ImmoscoutContactor(AbstractContactor):
     def send_message(self, expose: dict, message: str) -> bool:
         expose_id = str(expose.get('id', ''))
 
-        if not self.config.immoscout_session_cookies():
-            logger.error("ImmoScout: no session cookies configured")
-            return False
+        if not self.config.immoscout_session_cookies() and not self._fresh_cookie_str:
+            # No cookies at all — try auto-login first
+            if not self._try_refresh_cookies():
+                logger.error("ImmoScout: no session cookies and auto-login failed")
+                return False
 
         nonce = self._extract_nonce(expose_id)
         if not nonce:

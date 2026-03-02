@@ -8,5 +8,6 @@ lxml
 pydantic
 pytz
 pyyaml
+playwright
 requests
 python-dotenv

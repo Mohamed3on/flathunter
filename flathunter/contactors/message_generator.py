@@ -74,9 +74,9 @@ Scoring guidelines:
 - PENALIZE ground floor (Erdgeschoss/EG) apartments: -2 points. Ground floor = security and noise concerns.
 - Check the "Photos in listing" count. 0 photos = -2 points. Don't judge by how many images are attached to this prompt — judge by the count in the listing data.
 - Score heavily on value for money. A mediocre flat at max budget should score much lower than a great flat below budget.
-- Consider commute times if provided. Under 15min transit = great, over 30min = bad.
+- COMMUTE IS CRITICAL: If ALL durations are within the limit (marked ✅), give a significant boost (+1-2 points). If ANY duration exceeds the limit (marked ❌), penalize accordingly.
 - Furnished when tenant wants unfurnished = slight negative. Built-in kitchen (Einbauküche) is a plus.
-- Penalize temporary/sublet listings if tenant wants long-term.
+- Longer lease periods are a PLUS, not a negative. The tenant wants a long-term home.
 - Read the full listing description carefully — it contains critical details about condition, floor, amenities, and restrictions.
 
 TASK 2: If score >= 7, write a contact message in German (formal "Sie").
