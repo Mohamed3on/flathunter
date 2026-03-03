@@ -5,9 +5,12 @@ from typing import Optional, Any, List
 import yaml
 from dotenv import load_dotenv
 
+from flathunter.crawler.gewobag import Gewobag
+from flathunter.crawler.howoge import Howoge
 from flathunter.crawler.kleinanzeigen import Kleinanzeigen
 from flathunter.crawler.immobilienscout import Immobilienscout
 from flathunter.crawler.livinginberlin import LivingInBerlin
+from flathunter.crawler.wbm import Wbm
 from flathunter.crawler.wggesucht import WgGesucht
 from flathunter.logging import logger
 from flathunter.exceptions import ConfigException
@@ -82,6 +85,9 @@ Preis: {price}
             WgGesucht(self),
             Kleinanzeigen(self),
             LivingInBerlin(self),
+            Gewobag(self),
+            Howoge(self),
+            Wbm(self),
         ]
 
     def get(self, key, value=None):

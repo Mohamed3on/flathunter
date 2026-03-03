@@ -9,7 +9,7 @@ from flathunter.logging import logger
 
 # Crawlers where we send the draft message via Telegram instead of auto-contacting
 # (ImmoScout WAF blocks all automation on expose pages)
-MANUAL_CONTACT_CRAWLERS = {"Immobilienscout", "Kleinanzeigen"}
+MANUAL_CONTACT_CRAWLERS = {"Immobilienscout", "Kleinanzeigen", "Gewobag", "Howoge", "Wbm"}
 
 CONTACTOR_MAP = {
     "WgGesucht": WgGesuchtContactor,

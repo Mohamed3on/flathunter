@@ -68,9 +68,9 @@ class GMapsDurationProcessor(Processor):
         tokens = duration_text.split()
         minutes = 0
         for i in range(len(tokens)):
-            if tokens[i] == 'h':
+            if tokens[i] in ('h', 'hour', 'hours'):
                 minutes += int(tokens[i - 1]) * 60
-            elif tokens[i] == 'mins':
+            elif tokens[i] in ('mins', 'min'):
                 minutes += int(tokens[i - 1])
 
         return minutes
