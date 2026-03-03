@@ -61,7 +61,9 @@ def score_listing(expose: dict, config) -> Optional[dict]:
     user_profile = config.auto_contact_user_profile() or ""
     listing_text = _build_listing_text(expose)
 
-    prompt = f"""You are evaluating a rental apartment listing in Berlin, Germany for a tenant:
+    prompt = f"""You are evaluating a rental apartment listing in Berlin, Germany for a tenant. The current year is 2026. The tenant does NOT have a WBS (Wohnberechtigungsschein) — listings that require one should score very low.
+
+Tenant profile:
 {user_profile}
 
 Listing:
