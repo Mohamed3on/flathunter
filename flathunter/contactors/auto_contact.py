@@ -4,13 +4,15 @@ from time import sleep
 
 from flathunter.abstract_processor import Processor
 from flathunter.contactors.wggesucht import WgGesuchtContactor
-from flathunter.contactors.immoscout import ImmoscoutContactor
 from flathunter.notifiers import send_telegram_alert
 from flathunter.logging import logger
 
+# Crawlers where we send the draft message via Telegram instead of auto-contacting
+# (ImmoScout WAF blocks all automation on expose pages)
+MANUAL_CONTACT_CRAWLERS = {"Immobilienscout", "Kleinanzeigen"}
+
 CONTACTOR_MAP = {
     "WgGesucht": WgGesuchtContactor,
-    "Immobilienscout": ImmoscoutContactor,
 }
 
 
@@ -25,7 +27,6 @@ class AutoContactProcessor(Processor):
         self.delay_max = config.auto_contact_delay_max()
         self._contactors = {}
         self._first_message = True
-        self._alerted_cookies_expired = False
 
     def _get_contactor(self, crawler_name: str):
         if crawler_name not in self._contactors:
@@ -49,14 +50,22 @@ class AutoContactProcessor(Processor):
         if self.id_watch.is_contacted(expose_id, crawler):
             return expose
 
-        # Kleinanzeigen: skip auto-contact (message shown in Telegram instead)
-        if crawler == 'Kleinanzeigen':
-            return expose
-
         # Use the Gemini-generated message from the score step
         message = expose.get('gemini_message')
         if not message:
             logger.debug("No contact message for expose %s (score too low or Gemini unavailable)", expose_id)
+            return expose
+
+        # For crawlers where auto-contact is broken (WAF), send draft via Telegram
+        if crawler in MANUAL_CONTACT_CRAWLERS:
+            self._alert(
+                f"📝 <b>Draft message ready</b>\n"
+                f"{expose.get('title', 'N/A')}\n"
+                f"Score: {expose.get('gemini_score', '?')}/10\n"
+                f"{expose.get('url', '')}\n\n"
+                f"<pre>{message}</pre>"
+            )
+            self.id_watch.mark_contacted(expose_id, crawler)
             return expose
 
         # Rate limit
@@ -87,20 +96,10 @@ class AutoContactProcessor(Processor):
             )
         else:
             logger.warning("Failed to contact landlord for expose %s on %s", expose_id, crawler)
-            # Check for cookie expiry (ImmoScout specific)
-            if hasattr(contactor, 'cookies_expired') and contactor.cookies_expired:
-                if not self._alerted_cookies_expired:
-                    self._alert(
-                        "🚨 <b>ImmoScout session cookies expired!</b>\n"
-                        "Auto-contact is broken. Update immoscout_session_cookies "
-                        "in config.yaml with fresh cookies from your browser."
-                    )
-                    self._alerted_cookies_expired = True
-            else:
-                self._alert(
-                    f"❌ <b>Auto-contact failed</b>\n"
-                    f"{crawler} expose {expose_id}\n"
-                    f"{expose.get('url', '')}"
-                )
+            self._alert(
+                f"❌ <b>Auto-contact failed</b>\n"
+                f"{crawler} expose {expose_id}\n"
+                f"{expose.get('url', '')}"
+            )
 
         return expose
