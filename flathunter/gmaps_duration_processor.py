@@ -38,6 +38,7 @@ class GMapsDurationProcessor(Processor):
 
             dest = dest_config.get('destination')
             name = dest_config.get('name')
+            max_duration = dest_config.get('max_duration')
             for mode in dest_config.get('modes', []):
                 if not ('gm_id' in mode and 'title' in mode and 'key' in self.config.get('google_maps_api', {})):
                     continue
@@ -50,10 +51,13 @@ class GMapsDurationProcessor(Processor):
                 if limit is not None and duration_minutes is not None and 0 < duration_minutes <= limit:
                     format_style = "b"
                     emoji = "✅"
-                    any_passed = True
                 else:
                     format_style = "i"
                     emoji = "❌"
+
+                cutoff = max_duration or limit
+                if cutoff is not None and duration_minutes is not None and 0 < duration_minutes <= cutoff:
+                    any_passed = True
 
                 out += f"> {name} ({title}): {emoji} <{format_style}>{duration}</{format_style}>\n"
 
