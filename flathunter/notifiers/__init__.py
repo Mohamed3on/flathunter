@@ -18,7 +18,6 @@ def send_telegram_alert(bot_token: str, receiver_ids: list, text: str):
                 "chat_id": chat_id,
                 "text": text,
                 "parse_mode": "HTML",
-                "disable_web_page_preview": "true",
             }, timeout=10)
         except Exception as exc:
             logger.debug("Telegram alert failed for %s: %s", chat_id, exc)

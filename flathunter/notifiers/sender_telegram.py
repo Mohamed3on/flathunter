@@ -156,7 +156,7 @@ class SenderTelegram(Processor):
         return None
 
     def __get_images(self, expose: Dict) -> List[str]:
-        return expose.get("images", [])
+        return expose.get("detail_photos", [])
 
     def __get_text_message(self, expose: Dict) -> str:
         """

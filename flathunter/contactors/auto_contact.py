@@ -58,13 +58,7 @@ class AutoContactProcessor(Processor):
 
         # For crawlers where auto-contact is broken (WAF), send draft via Telegram
         if crawler in MANUAL_CONTACT_CRAWLERS:
-            self._alert(
-                f"📝 <b>Draft message ready</b>\n"
-                f"{expose.get('title', 'N/A')}\n"
-                f"Score: {expose.get('gemini_score', '?')}/10\n"
-                f"{expose.get('url', '')}\n\n"
-                f"<pre>{message}</pre>"
-            )
+            self._alert(message)
             self.id_watch.mark_contacted(expose_id, crawler)
             return expose
 
