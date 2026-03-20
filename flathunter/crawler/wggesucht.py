@@ -172,10 +172,6 @@ class WgGesucht(Crawler):
 
     URL_PATTERN = re.compile(r'https://www\.wg-gesucht\.de')
 
-    def __init__(self, config):
-        super().__init__(config)
-        self.config = config
-
     def get_expose_details(self, expose):
         """Fetch description and photos from expose page"""
         try:
@@ -195,9 +191,7 @@ class WgGesucht(Crawler):
                 src = img.get('data-src') or img.get('src', '')
                 if src and src.startswith('http'):
                     photos.append(src)
-            photos = list(dict.fromkeys(photos))
-            expose['detail_photos'] = photos
-            expose['detail_total_photos'] = len(photos)
+            self._set_photos(expose, photos)
         except Exception as exc:
             logger.debug("Failed to fetch details for %s: %s", expose.get('url'), exc)
         return expose

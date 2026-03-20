@@ -8,9 +8,9 @@ from flathunter.logging import logger
 class AbstractFilter(ABC):
     """Abstract base class for filters"""
 
-    def is_interesting(self, _expose) -> bool:
-        """Return True if an expose should be included in the output, False otherwise"""
-        return True
+    def is_interesting(self, _expose) -> tuple[bool, str]:
+        """Return (True, '') if an expose should be included, (False, reason) otherwise"""
+        return True, ""
 
 
 class ExposeHelper:
@@ -166,13 +166,11 @@ class TitleFilter(AbstractFilter):
     """Exclude exposes whose titles match the provided terms"""
 
     def __init__(self, filtered_titles):
-        self.filtered_titles = filtered_titles
+        combined = "(" + ")|(".join(filtered_titles) + ")"
+        self.pattern = re.compile(combined, re.IGNORECASE)
 
     def is_interesting(self, expose):
-        combined_excludes = "(" + ")|(".join(self.filtered_titles) + ")"
-        found_objects = re.search(combined_excludes, expose["title"], re.IGNORECASE)
-        # send all non matching regex patterns
-        if not found_objects:
+        if not self.pattern.search(expose["title"]):
             return True, ""
         return False, f"Title '{expose['title']}' matches filtered titles."
 

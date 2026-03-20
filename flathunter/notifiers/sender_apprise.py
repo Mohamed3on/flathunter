@@ -36,7 +36,7 @@ class SenderApprise(Processor):
             address=expose.get('address', 'N/A'),
             durations=expose.get('durations', 'N/A')
         ).strip()
-        images = expose.get("images", [])[: self.__image_limit]
+        images = expose.get("detail_photos", [])[: self.__image_limit]
         attach = images if self.__notify_with_images and images else None
         self.__send_msg(message, title, attach)
         return expose

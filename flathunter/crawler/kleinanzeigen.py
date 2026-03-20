@@ -29,7 +29,7 @@ class Kleinanzeigen(Crawler):
 
     def get_expose_details(self, expose):
         """Fetch description and photos from expose page"""
-        expose['from'] = datetime.datetime.now().strftime('%02d.%m.%Y')
+        expose['from'] = datetime.datetime.now().strftime('%d.%m.%Y')
         try:
             resp = requests.get(expose.get('url', ''), headers=HTML_HEADERS, timeout=15)
             if resp.status_code != 200:
@@ -45,9 +45,7 @@ class Kleinanzeigen(Crawler):
                 src = img.get('data-src') or img.get('src', '')
                 if src and src.startswith('http'):
                     photos.append(src)
-            photos = list(dict.fromkeys(photos))
-            expose['detail_photos'] = photos
-            expose['detail_total_photos'] = len(photos)
+            self._set_photos(expose, photos)
         except Exception as exc:
             logger.debug("Failed to fetch details for %s: %s", expose.get('url'), exc)
         return expose

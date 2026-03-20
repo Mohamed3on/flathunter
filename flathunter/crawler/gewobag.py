@@ -3,14 +3,7 @@ import re
 
 from flathunter.abstract_crawler import Crawler
 from flathunter.logging import logger
-
-
-def _parse_german_price(text):
-    """'1.100,00€' -> 1100.0"""
-    m = re.search(r'[\d.]+,\d+', text)
-    if not m:
-        return None
-    return float(m.group().replace('.', '').replace(',', '.'))
+from flathunter.utils import parse_german_price
 
 
 class Gewobag(Crawler):
@@ -113,18 +106,13 @@ class Gewobag(Crawler):
                 if th and td:
                     label = th.get_text(strip=True)
                     if 'Gesamtmiete' in label:
-                        val = _parse_german_price(td.get_text(strip=True))
+                        val = parse_german_price(td.get_text(strip=True))
                         if val:
                             expose['warmmiete'] = val
 
-            # Description from long paragraphs
-            desc_parts = []
-            for p in soup.find_all('p'):
-                text = p.get_text(strip=True)
-                if len(text) > 60 and 'cookie' not in text.lower():
-                    desc_parts.append(text)
-            if desc_parts:
-                expose['detail_description'] = "\n".join(desc_parts)[:2000]
+            desc = self._extract_description(soup)
+            if desc:
+                expose['detail_description'] = desc
 
             # Photos from gallery slider
             photos = []
@@ -132,9 +120,7 @@ class Gewobag(Crawler):
                 src = img.get('src') or img.get('data-src')
                 if src and 'gewo-immo-media' in src:
                     photos.append(src)
-            photos = list(dict.fromkeys(photos))
-            expose['detail_photos'] = photos
-            expose['detail_total_photos'] = len(photos)
+            self._set_photos(expose, photos)
 
         except Exception as exc:
             logger.debug("Failed to fetch details for %s: %s", expose.get('url'), exc)

@@ -11,7 +11,7 @@ from flathunter.config import YamlConfig
 from flathunter.exceptions import BotBlockedException
 from flathunter.exceptions import UserDeactivatedException
 from flathunter.logging import logger
-from flathunter.utils.list import chunk_list
+from itertools import batched
 
 
 class SenderTelegram(Processor):
@@ -101,7 +101,7 @@ class SenderTelegram(Processor):
         """
         # maximum number of images in a media group is 10.
         # if there are more than 10 images, we need to divide it into multiple messages.
-        for chunk in chunk_list(images, 10):
+        for chunk in batched(images, 10):
             payload = {
                 'chat_id': str(chat_id),
                 # media expected to be an array of objects in string format

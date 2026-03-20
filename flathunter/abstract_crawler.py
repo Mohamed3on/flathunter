@@ -13,6 +13,7 @@ class Crawler(ABC):
     """Defines the Crawler interface"""
 
     URL_PATTERN: re.Pattern
+    BASE_URL: str | None = None
 
     HEADERS = {
         'Connection': 'keep-alive',
@@ -31,6 +32,29 @@ class Crawler(ABC):
 
     def __init__(self, config):
         self.config = config
+
+    def _abs(self, href):
+        """Make a relative URL absolute using this crawler's BASE_URL."""
+        if href.startswith("http"):
+            return href
+        return f"{self.BASE_URL}/{href.lstrip('/')}"
+
+    def _extract_description(self, soup, max_len=2000, extra_excludes=()):
+        """Extract description from long paragraphs, filtering boilerplate."""
+        excludes = ('cookie',) + tuple(extra_excludes)
+        parts = []
+        for p in soup.find_all('p'):
+            text = p.get_text(strip=True)
+            lower = text.lower()
+            if len(text) > 60 and not any(ex in lower for ex in excludes):
+                parts.append(text)
+        return "\n".join(parts)[:max_len] if parts else None
+
+    def _set_photos(self, expose, photos):
+        """Deduplicate photos and set detail_photos/detail_total_photos."""
+        photos = list(dict.fromkeys(photos))
+        expose['detail_photos'] = photos
+        expose['detail_total_photos'] = len(photos)
 
     def get_page(self, search_url, page_no=None) -> BeautifulSoup:
         """Applies a page number to a formatted search URL and fetches the exposes at that page"""

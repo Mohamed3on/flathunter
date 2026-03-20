@@ -163,16 +163,12 @@ class Immobilienscout(Crawler):
                 if total_rent is not None:
                     expose['warmmiete'] = total_rent
 
-        try:
-            agent_name = data.get('contact', {}).get('contactData', {}).get('agent', {}).get('name', '')
-            if agent_name:
-                expose['detail_contact_name'] = agent_name
-        except Exception:
-            pass
+        agent_name = data.get('contact', {}).get('contactData', {}).get('agent', {}).get('name', '')
+        if agent_name:
+            expose['detail_contact_name'] = agent_name
 
         expose['detail_description'] = "\n\n".join(descriptions)[:3000]
-        expose['detail_photos'] = photos
-        expose['detail_total_photos'] = len(photos)
+        self._set_photos(expose, photos)
         return expose
 
     def get_results(self, search_url: str, max_pages: int | None = None) -> list:

@@ -1,9 +1,9 @@
 """Built-in expose processor implementations. Used by the processor pipelines
    in flathunter and in the webservice"""
-import re
 
 from flathunter.logging import logger
 from flathunter.abstract_processor import Processor
+
 
 class FilterProcessor(Processor):
     """Filter processor implementation. Applies a filter to the list of exposes"""
@@ -15,6 +15,7 @@ class FilterProcessor(Processor):
     def process_exposes(self, exposes):
         return self.filter.filter(exposes)
 
+
 class AddressResolver(Processor):
     """Processor to extract apartment addresses from expose links"""
 
@@ -24,12 +25,10 @@ class AddressResolver(Processor):
     def process_expose(self, expose):
         """Fetches the expose from the expose URL and extracts the address"""
         if expose['address'].startswith('http'):
-            url = expose['address']
-            for searcher in self.config.searchers():
-                if re.search(searcher.URL_PATTERN, url):
-                    expose['address'] = searcher.load_address(url)
-                    logger.debug("Loaded address %s for url %s", expose['address'], url)
-                    break
+            searcher = self.config.searcher_for_name(expose.get('crawler', ''))
+            if searcher and hasattr(searcher, 'load_address'):
+                expose['address'] = searcher.load_address(expose['address'])
+                logger.debug("Loaded address %s for url %s", expose['address'], expose['url'])
         return expose
 
 
@@ -48,10 +47,9 @@ class CrawlExposeDetails(Processor):
         self.config = config
 
     def process_expose(self, expose):
-        for searcher in self.config.searchers():
-            if re.search(searcher.URL_PATTERN, expose['url']):
-                expose = searcher.get_expose_details(expose)
-                break
+        searcher = self.config.searcher_for_name(expose.get('crawler', ''))
+        if searcher:
+            expose = searcher.get_expose_details(expose)
 
         warmmiete = expose.get('warmmiete')
         if warmmiete is not None:

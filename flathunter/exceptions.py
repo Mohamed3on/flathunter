@@ -1,30 +1,17 @@
-"""Some user-defined exception classes"""
+"""User-defined exception classes"""
 
-class ValueException(Exception):
-    """A generic exception class"""
-    def __init__(self, message):
-        self.value = str(message)
-        Exception.__init__(self, self.value)
 
-    def __str__(self):
-        return self.value
+class BotBlockedException(Exception):
+    """Raised when bot tries to send a message to a user that has blocked the bot"""
 
-class BotBlockedException(ValueException):
-    """
-    A small class that defines a Bot Blocked Exception.
-    """
 
-class UserDeactivatedException(ValueException):
-    """
-    A small class that defines a UserDeactivated Exception.
-    """
+class UserDeactivatedException(Exception):
+    """Raised when bot tries to send a message to a deactivated user"""
 
-class PersistenceException(ValueException):
-    """
-    Exception indicating a problem with backend storage
-    """
 
-class ConfigException(ValueException):
-    """
-    Exception indicating a problem with the configuration
-    """
+class PersistenceException(Exception):
+    """Problem with backend storage"""
+
+
+class ConfigException(Exception):
+    """Problem with the configuration"""

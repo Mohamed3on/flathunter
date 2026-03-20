@@ -112,6 +112,13 @@ Preis: {price}
         """Get the list of search plugins"""
         return self.__searchers__
 
+    def searcher_for_name(self, name: str):
+        """Get a searcher by its class name (e.g. 'Howoge')"""
+        for s in self.__searchers__:
+            if s.get_name() == name:
+                return s
+        return None
+
     def target_urls(self) -> List[str]:
         """List of target URLs for crawling"""
         return self._read_yaml_path('urls', [])
@@ -254,7 +261,7 @@ class Config(YamlConfig):
         if filename is not None:
             logger.info("Using config path %s", filename)
             if not os.path.exists(filename):
-                raise ConfigException("No config file found at location %s")
+                raise ConfigException(f"No config file found at location {filename}")
             with open(filename, encoding="utf-8") as file:
                 config = yaml.safe_load(file)
         else:

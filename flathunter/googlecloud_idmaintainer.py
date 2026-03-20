@@ -1,6 +1,6 @@
 """Storage back-end implementation using Google Cloud Firestore"""
 import datetime
-import pytz
+
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import firestore
@@ -36,9 +36,10 @@ class GoogleCloudIdMaintainer:
 
     def save_expose(self, expose):
         """Writes an expose to the storage backend"""
+        now = datetime.datetime.now(tz=datetime.timezone.utc)
         record = expose.copy()
-        record.update({'created_at': pytz.utc.localize(datetime.datetime.now()),
-                       'created_sort': (0 - datetime.datetime.now().timestamp())})
+        record.update({'created_at': now,
+                       'created_sort': (0 - now.timestamp())})
         self.database.collection('exposes').document(
             str(expose['id'])).set(record)
 
@@ -54,5 +55,5 @@ class GoogleCloudIdMaintainer:
             f"{expose_id}_{crawler}").set({
                 'id': expose_id,
                 'crawler': crawler,
-                'contacted_at': pytz.utc.localize(datetime.datetime.now()),
+                'contacted_at': datetime.datetime.now(tz=datetime.timezone.utc),
             })

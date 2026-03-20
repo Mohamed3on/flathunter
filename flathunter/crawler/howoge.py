@@ -3,25 +3,17 @@ import re
 from urllib.parse import urlparse, parse_qs, urlencode
 
 import requests
-from bs4 import BeautifulSoup
 
 from flathunter.abstract_crawler import Crawler
 from flathunter.logging import logger
-
-BASE_URL = "https://www.howoge.de"
-API_URL = "https://www.howoge.de/?type=999&tx_howrealestate_json_list[action]=immoList"
-
-
-def _abs(href):
-    if href.startswith("http"):
-        return href
-    return f"{BASE_URL}/{href.lstrip('/')}"
 
 
 class Howoge(Crawler):
     """Crawler for howoge.de rental listings (JSON API)"""
 
     URL_PATTERN = re.compile(r'https://www\.howoge\.de')
+    BASE_URL = "https://www.howoge.de"
+    API_URL = "https://www.howoge.de/?type=999&tx_howrealestate_json_list[action]=immoList"
 
     SIMPLE_HEADERS = {
         'User-Agent': 'Mozilla/5.0',
@@ -30,6 +22,7 @@ class Howoge(Crawler):
 
     def get_soup_from_url(self, url):
         """Override with simpler headers to avoid redirect loops on howoge.de."""
+        from bs4 import BeautifulSoup
         resp = requests.get(url, headers=self.SIMPLE_HEADERS, timeout=30)
         return BeautifulSoup(resp.content, 'lxml')
 
@@ -79,18 +72,18 @@ class Howoge(Crawler):
                 f'tx_howrealestate_json_list%5Bpage%5D={page}',
                 base_body,
             )
-            resp = requests.post(API_URL, data=body, headers=headers, timeout=30)
+            resp = requests.post(self.API_URL, data=body, headers=headers, timeout=30)
             resp.raise_for_status()
             data = resp.json()
 
             for obj in data.get('immoobjects', []):
                 image = None
                 if obj.get('image'):
-                    image = _abs(obj['image'])
+                    image = self._abs(obj['image'])
 
                 entries.append({
                     'id': obj['uid'],
-                    'url': _abs(obj.get('link', '')),
+                    'url': self._abs(obj.get('link', '')),
                     'title': obj.get('title', ''),
                     'price': f"{obj.get('rent', '')} €",
                     'size': f"{obj.get('area', '')} m²",
@@ -113,10 +106,10 @@ class Howoge(Crawler):
                         continue
                     image = None
                     if teaser.get('image'):
-                        image = _abs(teaser['image'])
+                        image = self._abs(teaser['image'])
                     entries.append({
                         'id': hash(link) & 0x7FFFFFFF,
-                        'url': _abs(link),
+                        'url': self._abs(link),
                         'title': teaser.get('title', ''),
                         'price': '',
                         'size': '',
@@ -140,14 +133,9 @@ class Howoge(Crawler):
         try:
             soup = self.get_soup_from_url(expose['url'])
 
-            # Description from long paragraphs
-            desc_parts = []
-            for p in soup.find_all('p'):
-                text = p.get_text(strip=True)
-                if len(text) > 60 and 'cookie' not in text.lower():
-                    desc_parts.append(text)
-            if desc_parts:
-                expose['detail_description'] = "\n".join(desc_parts)[:2000]
+            desc = self._extract_description(soup)
+            if desc:
+                expose['detail_description'] = desc
 
             # Warmmiete from detail table
             for tr in soup.select('table tr'):
@@ -166,16 +154,13 @@ class Howoge(Crawler):
             for img in soup.select('img[src*="fileadmin"]'):
                 src = img.get('src', '')
                 if src and '_processed_' not in src:
-                    photos.append(_abs(src))
-            # Also grab processed ones if no raw ones
+                    photos.append(self._abs(src))
             if not photos:
                 for img in soup.select('img[src*="fileadmin"]'):
                     src = img.get('src', '')
                     if src:
-                        photos.append(_abs(src))
-            photos = list(dict.fromkeys(photos))
-            expose['detail_photos'] = photos
-            expose['detail_total_photos'] = len(photos)
+                        photos.append(self._abs(src))
+            self._set_photos(expose, photos)
 
         except Exception as exc:
             logger.debug("Failed to fetch details for %s: %s", expose.get('url'), exc)
