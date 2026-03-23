@@ -74,6 +74,7 @@ Scoring guidelines:
 - HEAVILY reward well-maintained, renovated, modern apartments. Penalize old/unrenovated.
 - Bonus points for separate bedrooms (not just "rooms"), dedicated office space, or extra rooms beyond the minimum.
 - PENALIZE ground floor (Erdgeschoss/EG) apartments: -2 points. Ground floor = security and noise concerns.
+- PENALIZE apartments on 3rd floor or higher (3. OG+) without an elevator (Aufzug): -2 points. 2nd floor without elevator is fine.
 - Score heavily on value for money. A mediocre flat at max budget should score much lower than a great flat below budget.
 - COMMUTE IS CRITICAL: If ANY transport mode takes > 33 mins, -1 point. If ANY mode is under 12 mins, +1 point. ✅ = within configured limit, ❌ = exceeds limit.
 - Furnished when tenant wants unfurnished = slight negative. Built-in kitchen (Einbauküche) is a plus.
