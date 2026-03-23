@@ -67,17 +67,10 @@ jobs:
 
       - name: Ensure Cloud Scheduler trigger exists
         run: |
-          if ! gcloud scheduler jobs describe "${JOB_NAME}-trigger" \
+          if ! gcloud scheduler jobs describe "flathunters-scheduler-trigger" \
             --location "$REGION" \
             --project "$PROJECT_ID" > /dev/null 2>&1; then
-            gcloud scheduler jobs create http "${JOB_NAME}-trigger" \
-              --location "$REGION" \
-              --project "$PROJECT_ID" \
-              --schedule "*/10 * * * *" \
-              --time-zone "Europe/Berlin" \
-              --uri "https://${REGION}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${PROJECT_ID}/jobs/${JOB_NAME}:run" \
-              --http-method POST \
-              --oauth-service-account-email "$SCHEDULER_SA_EMAIL"
+            echo "WARNING: Scheduler trigger 'flathunters-scheduler-trigger' not found. Create it manually."
+            exit 1
           fi
-        env:
-          SCHEDULER_SA_EMAIL: ${{ secrets.GCP_SCHEDULER_SA_EMAIL }}
+          echo "Scheduler trigger exists."
