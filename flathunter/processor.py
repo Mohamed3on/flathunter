@@ -36,6 +36,9 @@ class QualityFilter(Processor):
 
     def process_exposes(self, exposes):
         for expose in exposes:
+            if not ExposeHelper.get_size(expose):
+                logger.info("Dropping '%s': no size data", expose.get('title'))
+                continue
             if not expose.get('durations_passed', True):
                 logger.info("Dropping '%s': durations exceed limits", expose.get('title'))
                 continue
