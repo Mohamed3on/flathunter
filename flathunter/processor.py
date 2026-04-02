@@ -26,9 +26,9 @@ class SaveAllExposesProcessor(Processor):
         return expose
 
 
-class QualityFilter(Processor):
-    """Drop exposes that fail duration limits or exceed PPS threshold.
-    Should run after calculate_durations and crawl_expose_details."""
+class PreDurationFilter(Processor):
+    """Drop exposes with no size data or that exceed PPS threshold.
+    Should run before calculate_durations to avoid unnecessary API calls."""
 
     def __init__(self, config):
         self.config = config
@@ -39,9 +39,6 @@ class QualityFilter(Processor):
             if not ExposeHelper.get_size(expose):
                 logger.info("Dropping '%s': no size data", expose.get('title'))
                 continue
-            if not expose.get('durations_passed', True):
-                logger.info("Dropping '%s': durations exceed limits", expose.get('title'))
-                continue
             if self.max_pps:
                 price = ExposeHelper.get_price(expose)
                 size = ExposeHelper.get_size(expose)
@@ -49,6 +46,18 @@ class QualityFilter(Processor):
                     logger.info("Dropping '%s': PPS %.1f exceeds %.1f",
                                 expose.get('title'), price / size, self.max_pps)
                     continue
+            yield expose
+
+
+class DurationFilter(Processor):
+    """Drop exposes that fail duration limits.
+    Should run after calculate_durations."""
+
+    def process_exposes(self, exposes):
+        for expose in exposes:
+            if not expose.get('durations_passed', True):
+                logger.info("Dropping '%s': durations exceed limits", expose.get('title'))
+                continue
             yield expose
 
 
@@ -87,9 +96,14 @@ class ProcessorChainBuilder:
         self.processors.append(CrawlExposeDetails(self.config))
         return self
 
-    def filter_quality(self):
-        """Drop exposes that fail duration limits or exceed PPS threshold"""
-        self.processors.append(QualityFilter(self.config))
+    def filter_pre_duration(self):
+        """Drop exposes with no size or bad PPS before duration API calls"""
+        self.processors.append(PreDurationFilter(self.config))
+        return self
+
+    def filter_durations(self):
+        """Drop exposes that fail duration limits"""
+        self.processors.append(DurationFilter(self.config))
         return self
 
     def apply_filter(self, filter_set):
